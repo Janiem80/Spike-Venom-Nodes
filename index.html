@@ -151,27 +151,3 @@ footer{padding:8px 20px;background:var(--surface);border-top:1px solid var(--bor
   <div class="footer-right"><span id="node-count">70</span> nodes · <span id="link-count">86</span> edges • v4.4</div>
 </footer>
 </div>
-<div class="tooltip" id="tooltip"></div>
-<script>
-// Your original script code (unchanged)
-const CAT_COLOR = {
-  glycan:'#3ecfcf', membrane:'#48c78e', nachr:'#b17de8',
-  spla2:'#f0c048', complement:'#fba04a', clot:'#f06b6b',
-  venom:'#f06bb0', integrator:'#4f9cf0', bbb:'#a78bfa',
-  reservoir:'#c084fc', loop:'#34d399'
-};
-// ... your original graphData.nodes and links (unchanged) ...
-
-// Add these at the end of the nodes array:
-,{"id":"N52","num":52,"name":"N52 – Secondary Tissue Reservoir & MMP-9 Disinhibition","cat":"reservoir","tier":2,"radius":17,"source":"extended","support":"moderate-strong","mechanism":"TIMP3 cleavage by 3CLpro disinhibits MMP-9, degrading BBB tight junctions and enabling deeper persistence.","venom":"SVMP MMP-mimicry","tags":["N52","MMP-9","BBB","deep reservoir"],"connections":["N11","N53"]}
-,{"id":"N53","num":53,"name":"N53 – Long-term / Germline-Adjacent Reservoir + LINE-1 / SV40 Integration Risk","cat":"reservoir","tier":2,"radius":18,"source":"extended","support":"moderate","mechanism":"Deepest reservoir compartment. Sustained by mtROS_DAMP and complement. Increases window for LINE-1 retrotransposition and plasmid/SV40 integration in ISG-dim states. Mitigated by full multi-axis clearance.","venom":"Host persistence amplifier","tags":["N53","LINE-1","SV40","germline","deep reservoir"],"connections":["N52","N11","N01"]}
-
-// Add these at the end of the links array:
-,{"source":"N51","target":"N52"},{"source":"N52","target":"N53"},{"source":"N01","target":"N52"},{"source":"N07","target":"N53"},{"source":"N53","target":"N11"}
-
-// Update footer counts
-document.getElementById('node-count').textContent = '70';
-</script>
-</body>
-</html>
-
