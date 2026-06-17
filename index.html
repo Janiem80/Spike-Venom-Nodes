@@ -1,495 +1,740 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Spike-Venom Convergence: 80-Node Evidence Map v4.5</title>
-<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
-<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=general-sans@400,500&display=swap" rel="stylesheet">
+<title>Spike–Venom Convergence Evidence Map v5.0</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <style>
-:root{--bg:#0f1117;--surface:#161b27;--surface2:#1e2535;--surface3:#242d3e;--border:#2a3347;--text:#e4e8f0;--muted:#8892a4;--faint:#4a5568;--primary:#4f9cf0;--primary-glow:rgba(79,156,240,0.18);--green:#48c78e;--orange:#fba04a;--red:#f06b6b;--purple:#b17de8;--gold:#f0c048;--teal:#3ecfcf;--pink:#f06bb0;--font-body:'Satoshi',sans-serif;--font-mono:'General Sans',monospace;--radius:8px;--transition:180ms cubic-bezier(0.16,1,0.3,1);--shadow:0 8px 32px rgba(0,0,0,0.45);}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px}
-#app{display:flex;flex-direction:column;height:100vh}
-header{padding:14px 20px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;z-index:10}
-.logo{display:flex;align-items:center;gap:10px}
-.logo h1{font-size:15px;font-weight:700;letter-spacing:-.2px}
-.logo p{font-size:11px;color:var(--muted);margin-top:1px}
-.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.filter-btn{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;transition:var(--transition);white-space:nowrap}
-.filter-btn:hover,.filter-btn.active{border-color:currentColor;color:var(--text);background:var(--surface2)}
-.filter-btn[data-cat="all"].active{color:var(--primary);border-color:var(--primary);background:var(--primary-glow)}
-.filter-btn[data-cat="membrane"].active{color:var(--green);border-color:var(--green)}
-.filter-btn[data-cat="nachr"].active{color:var(--purple);border-color:var(--purple)}
-.filter-btn[data-cat="complement"].active{color:var(--orange);border-color:var(--orange)}
-.filter-btn[data-cat="clot"].active{color:var(--red);border-color:var(--red)}
-.filter-btn[data-cat="spla2"].active{color:var(--gold);border-color:var(--gold)}
-.filter-btn[data-cat="glycan"].active{color:var(--teal);border-color:var(--teal)}
-.filter-btn[data-cat="venom"].active{color:var(--pink);border-color:var(--pink)}
-.filter-btn[data-cat="bbb"].active{color:#a78bfa;border-color:#a78bfa}
-.layout{display:flex;flex:1;overflow:hidden}
-#canvas{flex:1;overflow:hidden;position:relative}
-svg#graph{width:100%;height:100%;cursor:grab}
-svg#graph:active{cursor:grabbing}
-.node circle{stroke-width:1.5;transition:r 0.15s,opacity 0.2s}
-.node text{font-family:var(--font-body);pointer-events:none;user-select:none}
-.link{stroke-opacity:0.35;transition:stroke-opacity 0.2s}
-.node.dimmed circle{opacity:0.15}
-.node.dimmed text{opacity:0.1}
-.link.dimmed{stroke-opacity:0.05}
-#panel{width:320px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0}
-.panel-inner{padding:18px}
-.panel-title{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:14px}
-.empty-state{padding:40px 20px;text-align:center;color:var(--faint)}
-.empty-state p{font-size:12px;line-height:1.6}
-.node-detail{display:none}
-.node-detail.visible{display:block}
-.detail-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px}
-.detail-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:3px}
-.detail-name{font-size:15px;font-weight:700;line-height:1.3}
-.detail-cat{font-size:11px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.05em}
-.detail-section{margin-bottom:14px}
-.detail-section h4{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
-.detail-section p{font-size:12px;line-height:1.65;color:var(--text)}
-.badge-row{display:flex;gap:6px;flex-wrap:wrap}
-.badge{padding:3px 8px;border-radius:12px;font-size:10px;font-weight:600;background:var(--surface3);color:var(--muted)}
-.ref-item{font-size:11px;color:var(--muted);line-height:1.5;padding:5px 0;border-bottom:1px solid var(--border)}
-.ref-item span{color:var(--primary)}
-.metric-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)}
-.metric-label{font-size:11px;color:var(--muted)}
-.metric-val{font-size:12px;font-weight:600;color:var(--text);font-family:var(--font-mono)}
-footer{padding:8px 20px;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.footer-left,.footer-right{font-size:11px;color:var(--faint)}
-#node-count{color:var(--primary);font-weight:600}
-.legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
-.legend-dot{width:8px;height:8px;border-radius:50%}
-.tooltip{position:fixed;pointer-events:none;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--text);box-shadow:var(--shadow);z-index:100;opacity:0;transition:opacity 0.12s;max-width:200px;line-height:1.5}
-#nam-panel{position:fixed;top:60px;left:0;right:0;bottom:36px;overflow:auto;background:var(--surface);z-index:50;padding:20px;display:none}
-#nam-panel.visible{display:block}
+  :root {
+    --bg: #0e0f13;
+    --surface: #161820;
+    --surface2: #1e2030;
+    --border: #2a2d3a;
+    --text: #d4d6e0;
+    --text-muted: #7a7e94;
+    --text-faint: #4a4e60;
+    --accent: #4f98a3;
+    --accent2: #7a85c0;
+    --font: 'Inter', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .title-block h1 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.02em;
+  }
+  .title-block p {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+  .controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .filter-btn.active {
+    border-color: currentColor;
+    background: transparent;
+    font-weight: 600;
+  }
+  .filter-btn:hover { opacity: 0.85; }
+  #search {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    width: 140px;
+    outline: none;
+  }
+  #search::placeholder { color: var(--text-faint); }
+  #search:focus { border-color: var(--accent); }
+  svg {
+    flex: 1;
+    width: 100%;
+    display: block;
+  }
+  .link {
+    stroke-opacity: 0.35;
+    stroke-width: 1;
+  }
+  .link.highlight { stroke-opacity: 0.9; stroke-width: 2; }
+  .link.new-edge { stroke-dasharray: 5,3; stroke-opacity: 0.5; }
+  .node circle {
+    stroke-width: 1.5;
+    cursor: pointer;
+    transition: r 0.15s;
+  }
+  .node:hover circle { stroke-width: 2.5; }
+  .node text {
+    font-size: 9px;
+    fill: var(--text);
+    pointer-events: none;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .node.dimmed circle { opacity: 0.15; }
+  .node.dimmed text { opacity: 0.1; }
+  .link.dimmed { opacity: 0.05; }
+  /* Inspector panel */
+  #inspector {
+    position: fixed;
+    right: 12px;
+    top: 64px;
+    width: 280px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    display: none;
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+  }
+  #inspector.visible { display: block; }
+  #inspector h3 {
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+  #inspector .node-id {
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: monospace;
+    margin-bottom: 4px;
+  }
+  #inspector .node-axis {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  #inspector p {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  #inspector .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+  }
+  #inspector .connections {
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .source-badge {
+    font-size: 9px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin-top: 6px;
+    display: inline-block;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+  /* New node badge */
+  .new-node-badge {
+    font-size: 9px;
+    background: rgba(79,152,163,0.15);
+    border: 1px solid rgba(79,152,163,0.4);
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin-top: 6px;
+    display: inline-block;
+    color: var(--accent);
+  }
+  #stats {
+    position: fixed;
+    left: 12px;
+    bottom: 12px;
+    font-size: 10px;
+    color: var(--text-faint);
+    background: var(--surface);
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    z-index: 50;
+    line-height: 1.6;
+  }
+  #legend {
+    position: fixed;
+    left: 12px;
+    top: 64px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    z-index: 50;
+    font-size: 10px;
+    color: var(--text-muted);
+    line-height: 1.8;
+  }
+  #legend h4 { font-size: 11px; color: var(--text); margin-bottom: 6px; font-weight: 700; }
+  .legend-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-<div id="app">
+
 <header>
-  <div class="logo">
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-      <circle cx="14" cy="14" r="13" stroke="#4f9cf0" stroke-width="1.5"/>
-      <circle cx="14" cy="14" r="5" fill="#4f9cf0" opacity="0.4"/>
-      <line x1="14" y1="1" x2="14" y2="7" stroke="#4f9cf0" stroke-width="1.5"/>
-      <line x1="14" y1="21" x2="14" y2="27" stroke="#4f9cf0" stroke-width="1.5"/>
-      <line x1="1" y1="14" x2="7" y2="14" stroke="#4f9cf0" stroke-width="1.5"/>
-      <line x1="21" y1="14" x2="27" y2="14" stroke="#4f9cf0" stroke-width="1.5"/>
-      <line x1="4.4" y1="4.4" x2="8.5" y2="8.5" stroke="#48c78e" stroke-width="1.5"/>
-      <line x1="19.5" y1="19.5" x2="23.6" y2="23.6" stroke="#48c78e" stroke-width="1.5"/>
-      <line x1="23.6" y1="4.4" x2="19.5" y2="8.5" stroke="#f06b6b" stroke-width="1.5"/>
-      <line x1="8.5" y1="19.5" x2="4.4" y2="23.6" stroke="#f06b6b" stroke-width="1.5"/>
-    </svg>
-    <div>
-      <h1>Spike-Venom Convergence: 80-Node Evidence Map</h1>
-      <p>v4.5 · 2026-06-16 · PolyBio 2026 + Pediatric Layer + Persistence Nodes N64-N71</p>
-    </div>
+  <div class="title-block">
+    <h1>Spike–Venom Convergence Evidence Map v5.0</h1>
+    <p>75 nodes · 119 edges · v4.2 thesis-aligned · Janie M. 2026</p>
   </div>
   <div class="controls">
-    <button class="filter-btn active" data-cat="all">All Nodes</button>
-    <button class="filter-btn" data-cat="glycan">Glycocalyx</button>
-    <button class="filter-btn" data-cat="membrane">Membrane/Mito</button>
-    <button class="filter-btn" data-cat="nachr">nAChR</button>
-    <button class="filter-btn" data-cat="spla2">sPLA2/mtROS</button>
-    <button class="filter-btn" data-cat="complement">Complement</button>
-    <button class="filter-btn" data-cat="clot">Clot/NET</button>
-    <button class="filter-btn" data-cat="venom">Venom ref.</button>
-    <button class="filter-btn" data-cat="bbb">BBB/Gut/Pers.</button>
-    <button class="filter-btn" id="nam-btn" style="border-color:#f0c048;color:#f0c048">Node Map &#9660;</button>
+    <input id="search" type="text" placeholder="Search node…">
+    <button class="filter-btn active" data-axis="all" style="color:#d4d6e0">ALL</button>
+    <button class="filter-btn" data-axis="1" style="color:#e05c5c">Axis 1</button>
+    <button class="filter-btn" data-axis="2" style="color:#e09a3c">Axis 2</button>
+    <button class="filter-btn" data-axis="3" style="color:#5ca8e0">Axis 3</button>
+    <button class="filter-btn" data-axis="4" style="color:#9b6fe0">Axis 4</button>
+    <button class="filter-btn" data-axis="5" style="color:#5ce08a">Axis 5</button>
+    <button class="filter-btn" data-axis="spine" style="color:#e0ce5c">Spine</button>
+    <button class="filter-btn" data-axis="new" style="color:#4f98a3">New v5.0</button>
   </div>
 </header>
-<div id="nam-panel">
 
-<div id="nam-inner">
-<h2 style="font-size:14px;color:#4f9cf0;margin-bottom:12px">Node Access Map — 80 Nodes · v4.5 · June 16 2026 — PolyBio 2026 + Pediatric Layer + Persistence Nodes</h2>
-<table style="width:100%;border-collapse:collapse;font-size:10px;color:#e4e8f0">
-<thead><tr style="background:#1e2535">
-  <th style="padding:4px 8px;text-align:left;border:1px solid #2a3347">ID</th>
-  <th style="padding:4px 8px;text-align:left;border:1px solid #2a3347">Name</th>
-  <th style="padding:4px 8px;text-align:left;border:1px solid #2a3347">Category</th>
-  <th style="padding:4px 8px;text-align:left;border:1px solid #2a3347">Tier</th>
-  <th style="padding:4px 8px;text-align:left;border:1px solid #2a3347">Source</th>
-  <th style="padding:4px 8px;text-align:left;border:1px solid #2a3347">Key Venom Analog / Function</th>
-</tr></thead>
-<tbody>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N01</td><td style="padding:3px 8px;border:1px solid #2a3347">sPLA2-IIA Venom-Like Amplifier</td><td style="padding:3px 8px;border:1px solid #2a3347">spla2</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">spine</td><td style="padding:3px 8px;border:1px solid #2a3347">Rattlesnake sPLA2 / elapid venom PLA2 / beta-BTX PLA2 subunit</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N02</td><td style="padding:3px 8px;border:1px solid #2a3347">ADAMTS13-VWF Microangiopathy Axis</td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">spine</td><td style="padding:3px 8px;border:1px solid #2a3347">SVMP-mediated VWF/fibrinogen cleavage</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N03</td><td style="padding:3px 8px;border:1px solid #2a3347">ADAM17 / iRhom2 Sheddase Hub</td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">spine</td><td style="padding:3px 8px;border:1px solid #2a3347">P-III SVMP metalloproteases (HEXXH zinc)</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N04</td><td style="padding:3px 8px;border:1px solid #2a3347">nAChR Modulation / Cholinergic Dysregulation</td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">spine</td><td style="padding:3px 8px;border:1px solid #2a3347">Naja kaouthia alpha-cobratoxin / conotoxin-like</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N05</td><td style="padding:3px 8px;border:1px solid #2a3347">Membrane Lesioning by Spike Fragments</td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">spine</td><td style="padding:3px 8px;border:1px solid #2a3347">Naja CTX; beta-BTX PLA2 subunit; Brogna peptides</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N06</td><td style="padding:3px 8px;border:1px solid #2a3347">Spike-sPLA2 Two-Component Membrane System</td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">spine</td><td style="padding:3px 8px;border:1px solid #2a3347">Beta-bungarotoxin (Kunitz + PLA2 heterodimer)</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N07</td><td style="padding:3px 8px;border:1px solid #2a3347">Complement / CVF-Like Convertase</td><td style="padding:3px 8px;border:1px solid #2a3347">complement</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">spine</td><td style="padding:3px 8px;border:1px solid #2a3347">Cobra Venom Factor (CVF) from Naja species</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N08</td><td style="padding:3px 8px;border:1px solid #2a3347">Fibrin / NET Microclot Architecture</td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">spine</td><td style="padding:3px 8px;border:1px solid #2a3347">SVMPs + disintegrins</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N09</td><td style="padding:3px 8px;border:1px solid #2a3347">NE Cleavage / Amyloidogenic Spike Peptides</td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">spine</td><td style="padding:3px 8px;border:1px solid #2a3347">Venom serine proteases; fibrillogenic cleavage</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N10</td><td style="padding:3px 8px;border:1px solid #2a3347">RGD / Integrin / Disintegrin Convergence</td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">spine</td><td style="padding:3px 8px;border:1px solid #2a3347">Daboia RVV-X disintegrin domain</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N11</td><td style="padding:3px 8px;border:1px solid #2a3347">Node 11 mtROS Chronicity Amplifier</td><td style="padding:3px 8px;border:1px solid #2a3347">bbb</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">spine</td><td style="padding:3px 8px;border:1px solid #2a3347">ODE/Sobol validated; k3 Sobol ST 0.96; R(t) forcing</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N51</td><td style="padding:3px 8px;border:1px solid #2a3347">Spike Antigen Reservoir</td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">2</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347">Host persistence — gut/lymph/monocyte</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N52</td><td style="padding:3px 8px;border:1px solid #2a3347">TIMP3-MMP9 Disinhibition</td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">2</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347">SVMP metalloprotease MMP-mimicry</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N53</td><td style="padding:3px 8px;border:1px solid #2a3347">Gut-Brain LPS Axis</td><td style="padding:3px 8px;border:1px solid #2a3347">bbb</td><td style="padding:3px 8px;border:1px solid #2a3347">2</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347">Gut dysbiosis amplifier</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N54</td><td style="padding:3px 8px;border:1px solid #2a3347">Mitochondrial Warburg/OXPHOS Repression Hub</td><td style="padding:3px 8px;border:1px solid #2a3347">membrane</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347">Venom cardiotoxin/PLA2 bioenergetic collapse</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N55</td><td style="padding:3px 8px;border:1px solid #2a3347">Cardiolipin-sPLA2-IIA / mtROS-DAMP Loop</td><td style="padding:3px 8px;border:1px solid #2a3347">spla2</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347">His48-Asp99 cardiolipin; Sobol ST k3 0.96</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N56</td><td style="padding:3px 8px;border:1px solid #2a3347">Incomplete Mitophagy / PINK1-OPA1 Rebound Failure</td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347">Resolution failure; PLA2/cardiotoxin mito stress</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N57</td><td style="padding:3px 8px;border:1px solid #2a3347">Lysosomal-Mitochondrial Antigen Processing Crosstalk</td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">2</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347">ORF3a-VPS39; antigen processing impaired</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">N58</td><td style="padding:3px 8px;border:1px solid #2a3347">LINE-1 / Genomic Persistence Risk Module</td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">2</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347">Scoped hypothesis; spikeopathy persistence risk</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347"><b>N64 ★</b></td><td style="padding:3px 8px;border:1px solid #2a3347"><b>Pediatric Vulnerability Layer</b></td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347"><b>Galichina SUID; Mehrotra-Varma MIS-C 4.5yr; Yonker pediatric LongCOVID — NEW Jun16</b></td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347"><b>N65 ★</b></td><td style="padding:3px 8px;border:1px solid #2a3347"><b>Myeloid Reservoir (Sefik PolyBio 2026)</b></td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">2</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347"><b>Macrophage/neutrophil productive infection; R(t) forcing — NEW Jun16</b></td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347"><b>N66 ★</b></td><td style="padding:3px 8px;border:1px solid #2a3347"><b>Gut Persistence Hub (Henrich/Buggert/Huot)</b></td><td style="padding:3px 8px;border:1px solid #2a3347">bbb</td><td style="padding:3px 8px;border:1px solid #2a3347">2</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347"><b>20-25% patients; up to 4.5 years; PolyBio 2026 — NEW Jun16</b></td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347"><b>N67 ★</b></td><td style="padding:3px 8px;border:1px solid #2a3347"><b>T-cell Exhaustion / MENSA Biosensor</b></td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">2</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347"><b>Painter CD8 exhaustion; Lee MENSA — NEW Jun16</b></td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347"><b>N68 ★</b></td><td style="padding:3px 8px;border:1px solid #2a3347"><b>Maraviroc + Pravastatin (Salmon Pilot)</b></td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">2</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347"><b>Priority 2; 13/19 GI; microclot reduction — NEW Jun16</b></td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347"><b>N69 ★</b></td><td style="padding:3px 8px;border:1px solid #2a3347"><b>VYD2311 mAb (Elia PolyBio 2026)</b></td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">2</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347"><b>Priority 2; first commercial Long COVID/PVS mAb — NEW Jun16</b></td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347"><b>N70 ★</b></td><td style="padding:3px 8px;border:1px solid #2a3347"><b>MMT Mitohormetic Rescue (Putrino)</b></td><td style="padding:3px 8px;border:1px solid #2a3347">membrane</td><td style="padding:3px 8px;border:1px solid #2a3347">2</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347"><b>100% adherence; cognitive/autonomic improvement; mitohormesis — NEW Jun16</b></td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347"><b>N71 ★</b></td><td style="padding:3px 8px;border:1px solid #2a3347"><b>Reinfection R(t) Forcing (Zhang RECOVER-EHR)</b></td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">2</td><td style="padding:3px 8px;border:1px solid #2a3347">extended</td><td style="padding:3px 8px;border:1px solid #2a3347"><b>RR 2.08; ODE R(t) forcing; Sobol dominant driver — NEW Jun16</b></td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">U01–U50</td><td style="padding:3px 8px;border:1px solid #2a3347">Unified 50-Node Map</td><td style="padding:3px 8px;border:1px solid #2a3347">various</td><td style="padding:3px 8px;border:1px solid #2a3347">2</td><td style="padding:3px 8px;border:1px solid #2a3347">unified</td><td style="padding:3px 8px;border:1px solid #2a3347">Thromboinflammatory pathway backbone</td></tr>
-<tr><td style="padding:3px 8px;border:1px solid #2a3347">L01–L03</td><td style="padding:3px 8px;border:1px solid #2a3347">Self-Amplifying Feedback Loops</td><td style="padding:3px 8px;border:1px solid #2a3347">integrator</td><td style="padding:3px 8px;border:1px solid #2a3347">1</td><td style="padding:3px 8px;border:1px solid #2a3347">loop</td><td style="padding:3px 8px;border:1px solid #2a3347">NETosis/Fibrin, Spike-sPLA2, Complement-Endo</td></tr>
+<svg id="graph"></svg>
 
-</tbody></table>
-<p style="margin-top:12px;font-size:11px;color:#8892a4">★ = New nodes added June 16 2026 (v4.5). Extended nodes (N51–N71) are dashed-ring circles in the graph. Click any node for full mechanism + refs.</p>
+<div id="legend">
+  <h4>Axis Legend</h4>
+  <div><span class="legend-dot" style="background:#e05c5c"></span>Axis 1 — Immune Decimation</div>
+  <div><span class="legend-dot" style="background:#e09a3c"></span>Axis 2 — Viral Persistence</div>
+  <div><span class="legend-dot" style="background:#5ca8e0"></span>Axis 3 — Chronic Inflammation</div>
+  <div><span class="legend-dot" style="background:#9b6fe0"></span>Axis 4 — Vascular/Endothelial</div>
+  <div><span class="legend-dot" style="background:#5ce08a"></span>Axis 5 — Neurology</div>
+  <div><span class="legend-dot" style="background:#e0ce5c"></span>Spine Nodes (N01–N11)</div>
+  <div><span class="legend-dot" style="background:#4f98a3"></span>New v5.0 Nodes</div>
+  <div><span class="legend-dot" style="background:#888"></span>Utility / Clinical</div>
 </div>
 
+<div id="inspector">
+  <button class="close-btn" onclick="closeInspector()">✕</button>
+  <div class="node-id" id="insp-id"></div>
+  <h3 id="insp-label"></h3>
+  <div class="node-axis" id="insp-axis"></div>
+  <p id="insp-desc"></p>
+  <div id="insp-source"></div>
+  <div class="connections" id="insp-connections"></div>
 </div>
-<div class="layout">
-  <div id="canvas"><svg id="graph"></svg></div>
-  <div id="panel">
-    <div class="panel-inner">
-      <div class="panel-title">Node Detail</div>
-      <div class="empty-state" id="empty-msg">
-        <p>Click any node to view mechanism, evidence tier, quantitative metrics, and references.</p>
-      </div>
-      <div class="node-detail" id="node-detail"></div>
-    </div>
-  </div>
+
+<div id="stats">
+  <div id="stat-text">75 nodes · 119 edges · drag to explore · scroll to zoom · click node for detail</div>
 </div>
-<footer>
-  <div class="footer-left">Drag to pan &middot; Scroll to zoom &middot; Click node to inspect &middot; Filter by axis</div>
-  <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#3ecfcf"></div>Glycocalyx</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#48c78e"></div>Membrane/Mito</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#b17de8"></div>nAChR</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#f0c048"></div>sPLA2</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#fba04a"></div>Complement</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#f06b6b"></div>Clot/NET</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#f06bb0"></div>Venom</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#4f9cf0"></div>Integrator</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>BBB/Gut/Pers</div>
-  </div>
-  <div class="footer-right"><span id="node-count">80</span> nodes &middot; <span id="link-count">120</span> edges &middot; v4.5 &middot; Jun 16 2026</div>
-</footer>
-</div>
-<div class="tooltip" id="tooltip"></div>
 
 <script>
-const CAT_COLOR={glycan:'#3ecfcf',membrane:'#48c78e',nachr:'#b17de8',spla2:'#f0c048',complement:'#fba04a',clot:'#f06b6b',venom:'#f06bb0',integrator:'#4f9cf0',bbb:'#a78bfa',loop:'#34d399'};
-const graphData={
-nodes:[
-{"id":"N01","num":1,"name":"sPLA2-IIA Venom-Like Amplifier","cat":"spla2","tier":1,"radius":20,"source":"spine","support":"strong","mechanism":"Host Group IIA sPLA2 amplifies Spike-induced membrane stress by hydrolyzing exposed phospholipids. Shares His48-Asp99 catalytic dyad and hydrophobic insertion loop (Phe5/Leu8/Trp18/Tyr19/Phe63/Leu64) with rattlesnake and elapid venom PLA2s. Cooperative two-component membrane destruction system analogous to beta-bungarotoxin.","venom":"Rattlesnake sPLA2 / elapid venom PLA2 / beta-bungarotoxin PLA2 subunit","metrics":[{"k":"Fold elevation (deceased)","v":"~2-14x"},{"k":"Lethal threshold","v":"~10 ng/mL (venom PLA2)"},{"k":"ML rank","v":"Top mortality predictor"}],"refs":["JCI_Insight_McCall_sPLA2_2021","Arizona_VenomLike_Enzyme_COVID_2021"],"tags":["sPLA2-IIA","venom PLA2 homolog","Priority 1 target"],"connections":[]},
-{"id":"N02","num":2,"name":"ADAMTS13-VWF Microangiopathy Axis","cat":"integrator","tier":1,"radius":20,"source":"spine","support":"strong","mechanism":"COVID-19 disrupts the ADAMTS13-VWF axis: VWF markedly elevated, ADAMTS13 activity reduced, creating ultra-large VWF strings. ADAMTS13 genetic variants predispose to severe microthrombotic phenotype.","venom":"SVMP-mediated VWF/fibrinogen cleavage dysregulation in viperid envenomation","metrics":[{"k":"ADAMTS13","v":"Reduced in severe COVID"},{"k":"VWF","v":"Markedly elevated"}],"refs":["LowADAMTS13_Mortality_COVID_PMC_2021","ADAMTS13_VWF_Axis_COVID_PMC_2022"],"tags":["ADAMTS13","VWF","microangiopathy","TTP-like"],"connections":[]},
-{"id":"N03","num":3,"name":"ADAM17 / iRhom2 Sheddase Hub","cat":"integrator","tier":1,"radius":20,"source":"spine","support":"moderate-strong","mechanism":"ADAM17 Zn2+-dependent sheddase with HEXXH catalytic motif cleaves ACE2, TNFR, IL-6R, VE-cadherin, thrombomodulin, syndecan-1. iRhom2 controls ADAM17 maturation. Spike-ACE2 engagement activates iRhom2-ADAM17.","venom":"P-III SVMP metalloproteases (HEXXH zinc coordination)","metrics":[{"k":"ADAM17","v":"Elevated in severe COVID"}],"refs":["ADAM17_ACE2_Olink_2024","iRhom2_ADAM17_COVID_Cytokine_PMC_2024"],"tags":["ADAM17","iRhom2","ACE2 shedding"],"connections":[]},
-{"id":"N04","num":4,"name":"nAChR Modulation and Cholinergic Dysregulation","cat":"integrator","tier":1,"radius":20,"source":"spine","support":"moderate","mechanism":"Spike Y674-R685 loop structurally converges with three-finger alpha-neurotoxins. MD binding energy ~-49 kcal/mol at alpha7 nAChR. Allosteric modulator driving dysautonomia.","venom":"Naja kaouthia alpha-cobratoxin; conotoxin-like peptides","metrics":[{"k":"MD binding energy","v":"~-49 kcal/mol alpha7"},{"k":"Key contacts","v":"Y674, Q677, N679, R682-R683"}],"refs":["Changeux_Spike_nAChR_2021","Stokes_Alpha7_Spike_2023"],"tags":["nAChR","alpha7","Y674-R685","dysautonomia"],"connections":[]},
-{"id":"N05","num":5,"name":"Membrane Lesioning by Spike Fragments","cat":"integrator","tier":1,"radius":20,"source":"spine","support":"moderate","mechanism":"Spike-derived fragments insert into lipid bilayers: depth ~1.6-1.8 nm, tilt ~26-32 deg, S_CD reductions 0.18-0.21. Benchmarks to cobra cardiotoxins and beta-BTX PLA2 subunits.","venom":"Naja CTX; beta-bungarotoxin PLA2 subunit; Daboia PLA2","metrics":[{"k":"Insertion depth","v":"~1.6-1.8 nm"},{"k":"Tilt angle","v":"~26-32 deg"},{"k":"SCD reduction","v":"0.18-0.21"}],"refs":["CTX_Bilayer_MD_JCIM_2020","Brogna_ToxinLike_IJMS_2021"],"tags":["membrane insertion","bilayer disruption","CTX-like","Brogna peptides"],"connections":[]},
-{"id":"N06","num":6,"name":"Spike-sPLA2 Two-Component Membrane System","cat":"integrator","tier":1,"radius":20,"source":"spine","support":"moderate-strong","mechanism":"Functional analog of beta-bungarotoxin: Spike fragments as delivery/targeting component (Kunitz analog) + host sPLA2-IIA as enzymatic component. Cooperative two-stage membrane destruction.","venom":"Beta-bungarotoxin (Kunitz + PLA2 heterodimer)","metrics":[{"k":"Delivery","v":"Spike fragments"},{"k":"Enzymatic","v":"sPLA2-IIA"}],"refs":["BetaBungarotoxin_Mechanism_PNAS_1976","JCI_Insight_McCall_sPLA2_2021"],"tags":["two-component toxin","beta-BTX model","membrane synergy"],"connections":[]},
-{"id":"N07","num":7,"name":"Complement Activation and CVF-Like Convertase Stability","cat":"complement","tier":1,"radius":20,"source":"spine","support":"moderate","mechanism":"Complement strongly activated in severe and Long COVID. CVF forms highly stable C3/C5 convertase (CVF-Bb) resistant to factor H/I regulation. Spike-containing complexes may adopt similar kinetic regime.","venom":"Cobra Venom Factor (CVF) from Naja species","metrics":[{"k":"C3a/C5a","v":"Elevated in Long COVID"}],"refs":["Complement_Holter_2021","LongCOVID_Complement_JCI_2025"],"tags":["complement","C3a","C5a","C5b-9","CVF"],"connections":[]},
-{"id":"N08","num":8,"name":"Fibrin / NET Microclot Architecture","cat":"integrator","tier":1,"radius":20,"source":"spine","support":"strong","mechanism":"Fibrin(ogen) microclots with amyloid features accumulate in acute and Long COVID, structurally associated with NETs. Composite scaffolds resist fibrinolysis and contribute to microvascular obstruction. Fibrin-Spike complexes activate microglial Mac-1, driving neuroinflammation.","venom":"SVMPs promoting fibrinogen degradation; disintegrins altering platelet/fibrin architecture","metrics":[{"k":"Colocalization","v":"Microclot-NET confirmed"},{"k":"Fibrinolysis","v":"Plasmin-resistant"}],"refs":["Ryu_Fibrin_Neuroinflammation_Nature_2024","Pretorius_Microclots_LongCOVID_2021","Laubscher_TEG_Microclots_2022"],"tags":["fibrin","microclots","NETs","amyloid fibrin","plasmin resistance"],"connections":[]},
-{"id":"N09","num":9,"name":"NE Cleavage and Amyloidogenic Spike Peptides","cat":"integrator","tier":1,"radius":20,"source":"spine","support":"moderate-strong","mechanism":"Neutrophil elastase released during NETosis cleaves Spike at Arg192, releasing amyloidogenic peptide 194-203 (VLYNLGGFV). Forms ThT-positive amyloid fibrils in fibrin networks, producing plasmin-resistant clots.","venom":"Venom serine proteases generating fibrillogenic cleavage fragments","metrics":[{"k":"Cleavage site","v":"Arg192"},{"k":"Amyloid peptide","v":"194-203 VLYNLGGFV"},{"k":"ThT positivity","v":"Confirmed"}],"refs":["Nystrom_Amyloidogenesis_Spike_JACS_2022","NET_Microclot_JMedVirol_2025"],"tags":["neutrophil elastase","Arg192","amyloidogenic peptide","VLYNLGGFV"],"connections":[]},
-{"id":"N10","num":10,"name":"RGD / Integrin / Disintegrin Convergence","cat":"integrator","tier":1,"radius":20,"source":"spine","support":"moderate","mechanism":"Spike RGD motif at residues 403-405 binds platelet alphaIIbbeta3. N501Y enhances binding. Converges structurally with viperid disintegrins (RVV-X RGD at 240-242, RMSD 1.7 A).","venom":"Daboia russelii RVV-X disintegrin domain","metrics":[{"k":"Spike RGD","v":"403-405"},{"k":"RVV-X RMSD","v":"1.7 Angstrom"},{"k":"N501Y","v":"Enhanced binding"}],"refs":["Platelet_alphaIIbbeta3_Spike_PMC_2023"],"tags":["RGD","alphaIIbbeta3","integrin","disintegrin"],"connections":[]},
-{"id":"N11","num":11,"name":"Node 11 mtROS Chronicity Amplifier","cat":"bbb","tier":1,"radius":22,"source":"spine","support":"strong - ODE/Sobol validated","mechanism":"Central convergence hub where venom-analog insults from all five axes generate self-amplifying mtROS, producing bistable chronicity. ODE: dM/dt = k1*S*N51 + k2*sPLA2 + k3*M^2 - gamma*M*A - delta_M*M. R(t) forcing from reinfection/persistence. Sobol ST: k3 up to 0.96; R(t) dominant alongside k3. PolyBio 2026 persistence data (Sefik, Henrich, Buggert, Huot, Zhang) strengthens R(t) forcing term.","venom":"Functional vascular-leak and mito-stress comparator: venom systems show complement, NETs, cardiolipin attack, and endothelial injury converging on barrier failure and energy collapse.","metrics":[{"k":"Sobol ST k3","v":"Up to 0.96"},{"k":"Sobol ST R(t)","v":"Dominant alongside k3"},{"k":"Bistability","v":"Two stable steady states"},{"k":"Triple mito regimen","v":"98-99.8% model clearance"}],"refs":["Node_11_ODE_Sobol_June2026","Ansone_iScience_2026_multiomics","Cervia-Hasler_Science_2024"],"tags":["Node 11","mtROS","bistability","ODE","Sobol","k3","R(t)","BBB","chronicity amplifier"],"connections":[]},
-{"id":"U01","num":1,"name":"Viral/antigen persistence","cat":"integrator","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Sustains immune activation and downstream thromboinflammatory signaling.","venom":"","metrics":[],"refs":[],"tags":["Trigger"],"connections":[]},
-{"id":"U02","num":2,"name":"Endothelial activation","cat":"glycan","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Increases adhesion signaling and procoagulant tone.","venom":"","metrics":[],"refs":[],"tags":["Vascular"],"connections":[]},
-{"id":"U03","num":3,"name":"Endothelial injury","cat":"glycan","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Exposes thrombogenic surfaces and worsens barrier dysfunction.","venom":"","metrics":[],"refs":[],"tags":["Vascular"],"connections":[]},
-{"id":"U04","num":4,"name":"Glycocalyx disruption","cat":"glycan","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Weakens endothelial anticoagulant protection.","venom":"","metrics":[],"refs":[],"tags":["Vascular"],"connections":[]},
-{"id":"U05","num":5,"name":"Tissue factor induction","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Initiates extrinsic coagulation.","venom":"","metrics":[],"refs":[],"tags":["Coagulation"],"connections":[]},
-{"id":"U06","num":6,"name":"Platelet activation","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Drives clot growth and inflammatory cross-talk.","venom":"","metrics":[],"refs":[],"tags":["Cellular"],"connections":[]},
-{"id":"U07","num":7,"name":"Platelet hyperreactivity","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Supports persistent thrombotic tendency in Long COVID.","venom":"","metrics":[],"refs":[],"tags":["Cellular"],"connections":[]},
-{"id":"U08","num":8,"name":"Platelet-neutrophil aggregates","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Promote immunothrombosis and NET formation.","venom":"","metrics":[],"refs":[],"tags":["Bridge"],"connections":[]},
-{"id":"U09","num":9,"name":"Neutrophil activation","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Primes NETosis and protease release.","venom":"","metrics":[],"refs":[],"tags":["Innate immune"],"connections":[]},
-{"id":"U10","num":10,"name":"NETosis","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Generates extracellular DNA-protein clot scaffolds.","venom":"","metrics":[],"refs":[],"tags":["Innate immune"],"connections":[]},
-{"id":"U11","num":11,"name":"NET DNA scaffold","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Stabilizes microclots and local inflammatory injury.","venom":"","metrics":[],"refs":[],"tags":["Structural"],"connections":[]},
-{"id":"U12","num":12,"name":"Histones on NETs","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Increase endothelial toxicity and clot stability.","venom":"","metrics":[],"refs":[],"tags":["Structural/toxic"],"connections":[]},
-{"id":"U13","num":13,"name":"Neutrophil elastase release","cat":"membrane","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Remodels proteins; favors amyloidogenic clot transition.","venom":"","metrics":[],"refs":[],"tags":["Protease"],"connections":[]},
-{"id":"U14","num":14,"name":"MPO and granular proteins","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Reinforce oxidative and inflammatory tissue injury.","venom":"","metrics":[],"refs":[],"tags":["Innate effector"],"connections":[]},
-{"id":"U15","num":15,"name":"Complement C3 activation","cat":"complement","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Expands inflammatory amplification.","venom":"","metrics":[],"refs":[],"tags":["Complement"],"connections":[]},
-{"id":"U16","num":16,"name":"Complement C5 activation","cat":"complement","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Generates potent downstream inflammatory effectors.","venom":"","metrics":[],"refs":[],"tags":["Complement"],"connections":[]},
-{"id":"U17","num":17,"name":"C5a signaling","cat":"complement","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Activates leukocytes and endothelium.","venom":"","metrics":[],"refs":[],"tags":["Complement"],"connections":[]},
-{"id":"U18","num":18,"name":"Terminal complement C5b-9","cat":"complement","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Damages cells and worsens vascular dysfunction.","venom":"","metrics":[],"refs":[],"tags":["Complement"],"connections":[]},
-{"id":"U19","num":19,"name":"Alternative pathway reinforcement","cat":"complement","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Sustains complement dysregulation.","venom":"","metrics":[],"refs":[],"tags":["Complement"],"connections":[]},
-{"id":"U20","num":20,"name":"Lectin pathway contribution","cat":"complement","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Adds parallel thromboinflammatory route.","venom":"","metrics":[],"refs":[],"tags":["Complement"],"connections":[]},
-{"id":"U21","num":21,"name":"Thrombin generation","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Amplifies clotting and inflammation.","venom":"","metrics":[],"refs":[],"tags":["Coagulation"],"connections":[]},
-{"id":"U22","num":22,"name":"Factor Xa activity","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Drives common-pathway propagation and signaling.","venom":"","metrics":[],"refs":[],"tags":["Coagulation"],"connections":[]},
-{"id":"U23","num":23,"name":"Fibrinogen consumption","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Prepares abnormal fibrin architecture.","venom":"","metrics":[],"refs":[],"tags":["Clot substrate"],"connections":[]},
-{"id":"U24","num":24,"name":"Fibrin formation","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Creates the core clot meshwork.","venom":"","metrics":[],"refs":[],"tags":["Clot structure"],"connections":[]},
-{"id":"U25","num":25,"name":"Abnormal fibrin ultrastructure","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Increases density and inflammatory activity.","venom":"","metrics":[],"refs":[],"tags":["Clot pathology"],"connections":[]},
-{"id":"U26","num":26,"name":"Amyloid-fibrin transition","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Produces resistant fibrinaloid structures.","venom":"","metrics":[],"refs":[],"tags":["Clot pathology"],"connections":[]},
-{"id":"U27","num":27,"name":"Spike-fibrinogen binding","cat":"membrane","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Promotes structurally abnormal clotting.","venom":"","metrics":[],"refs":[],"tags":["Viral-host interface"],"connections":[]},
-{"id":"U28","num":28,"name":"Spike amyloid fibrils","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Impair fibrin formation and fibrinolysis.","venom":"","metrics":[],"refs":[],"tags":["Protein misfolding"],"connections":[]},
-{"id":"U29","num":29,"name":"Impaired fibrinolysis","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Prevents normal clot breakdown.","venom":"","metrics":[],"refs":[],"tags":["Resolution failure"],"connections":[]},
-{"id":"U30","num":30,"name":"Plasmin resistance","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Supports clot persistence.","venom":"","metrics":[],"refs":[],"tags":["Resolution failure"],"connections":[]},
-{"id":"U31","num":31,"name":"D-dimer persistence","cat":"integrator","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Reflects ongoing fibrin turnover.","venom":"","metrics":[],"refs":[],"tags":["Biomarker"],"connections":[]},
-{"id":"U32","num":32,"name":"vWF release","cat":"glycan","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Enhances platelet tethering under shear.","venom":"","metrics":[],"refs":[],"tags":["Endothelial-hemostatic"],"connections":[]},
-{"id":"U33","num":33,"name":"ADAMTS13 insufficiency","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Favors ultra-large vWF activity and microthrombosis.","venom":"","metrics":[],"refs":[],"tags":["Hemostatic regulation"],"connections":[]},
-{"id":"U34","num":34,"name":"Platelet-vWF adhesion","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Supports microvascular occlusion.","venom":"","metrics":[],"refs":[],"tags":["Hemostatic bridge"],"connections":[]},
-{"id":"U35","num":35,"name":"Microclot nucleation","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Seeds persistent circulating clot particles.","venom":"","metrics":[],"refs":[],"tags":["Structural event"],"connections":[]},
-{"id":"U36","num":36,"name":"NET-wrapped microclots","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Strongly linked to Long COVID persistence.","venom":"","metrics":[],"refs":[],"tags":["Structural event"],"connections":[]},
-{"id":"U37","num":37,"name":"Capillary flow obstruction","cat":"integrator","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Reduces microvascular oxygen delivery.","venom":"","metrics":[],"refs":[],"tags":["Perfusion"],"connections":[]},
-{"id":"U38","num":38,"name":"Tissue hypoxia","cat":"integrator","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Feeds inflammation and organ dysfunction.","venom":"","metrics":[],"refs":[],"tags":["Downstream injury"],"connections":[]},
-{"id":"U39","num":39,"name":"RBC deformability stress","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Worsens microcirculatory flow.","venom":"","metrics":[],"refs":[],"tags":["Rheology"],"connections":[]},
-{"id":"U40","num":40,"name":"Monocyte inflammatory signaling","cat":"clot","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Supports tissue factor and cytokine output.","venom":"","metrics":[],"refs":[],"tags":["Innate immune"],"connections":[]},
-{"id":"U41","num":41,"name":"IL-6 and inflammatory cytokines","cat":"complement","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Couple inflammation to coagulation.","venom":"","metrics":[],"refs":[],"tags":["Soluble mediator"],"connections":[]},
-{"id":"U42","num":42,"name":"NF-kappaB transcriptional activation","cat":"integrator","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Sustains the proinflammatory state.","venom":"","metrics":[],"refs":[],"tags":["Signaling"],"connections":[]},
-{"id":"U43","num":43,"name":"ADAM17-mediated shedding","cat":"membrane","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Alters endothelial and inflammatory signaling surfaces.","venom":"","metrics":[],"refs":[],"tags":["Protease regulation"],"connections":[]},
-{"id":"U44","num":44,"name":"Soluble receptor shedding","cat":"membrane","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Changes ligand availability and inflammatory tone.","venom":"","metrics":[],"refs":[],"tags":["Protease regulation"],"connections":[]},
-{"id":"U45","num":45,"name":"Vascular permeability increase","cat":"glycan","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Enables edema and leukocyte trafficking.","venom":"","metrics":[],"refs":[],"tags":["Barrier failure"],"connections":[]},
-{"id":"U46","num":46,"name":"Neurovascular inflammation","cat":"bbb","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Links thromboinflammation to brain symptoms.","venom":"","metrics":[],"refs":[],"tags":["Organ consequence"],"connections":[]},
-{"id":"U47","num":47,"name":"Microglial activation by fibrin","cat":"bbb","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Supports neurologic injury mechanisms in COVID.","venom":"","metrics":[],"refs":[],"tags":["Organ consequence"],"connections":[]},
-{"id":"U48","num":48,"name":"Fibrosis and maladaptive repair","cat":"integrator","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Converts ongoing injury into persistent dysfunction.","venom":"","metrics":[],"refs":[],"tags":["Chronic consequence"],"connections":[]},
-{"id":"U49","num":49,"name":"Symptom persistence in Long COVID","cat":"integrator","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Produces clustered fatigue, dyspnea, and cognitive dysfunction.","venom":"","metrics":[],"refs":[],"tags":["Clinical endpoint"],"connections":[]},
-{"id":"U50","num":50,"name":"Self-reinforcing thromboinflammatory loop","cat":"integrator","tier":2,"radius":9,"source":"unified","support":"unified map","mechanism":"Integrates complement, platelets, NETs, fibrin, and endothelial injury.","venom":"","metrics":[],"refs":[],"tags":["Systems endpoint"],"connections":[]},
-{"id":"L01","num":0,"name":"NETosis-NE-Amyloid-Fibrin Loop","cat":"integrator","tier":1,"radius":15,"source":"loop","support":"self-amplifying","mechanism":"NETosis releases NE which cleaves Spike generating amyloidogenic peptides (194-203) that harden fibrin into lysis-resistant microclots. Dense NET/fibrin scaffolds sustain thromboinflammation and promote further NETosis.","venom":"","metrics":[],"refs":[],"tags":["feedback loop","N08","N09"],"connections":[]},
-{"id":"L02","num":0,"name":"Spike-sPLA2 Membrane Destruction Loop","cat":"integrator","tier":1,"radius":15,"source":"loop","support":"self-amplifying","mechanism":"Spike fragments pre-stress membranes; sPLA2-IIA hydrolyzes pre-stressed phospholipids. Membrane debris and lipid mediators further activate sPLA2-IIA.","venom":"","metrics":[],"refs":[],"tags":["feedback loop","N05","N06","N01"],"connections":[]},
-{"id":"L03","num":0,"name":"Complement-Thromboinflammation-Endothelial Loop","cat":"integrator","tier":1,"radius":15,"source":"loop","support":"self-amplifying","mechanism":"Complement activation damages endothelium, upregulates ADAM17/iRhom2, promotes NETs. NETs and microclots re-activate complement. Endothelial damage amplifies sPLA2-IIA and cytokines.","venom":"","metrics":[],"refs":[],"tags":["feedback loop","N07","N03","N08"],"connections":[]},
-{"id":"N51","num":51,"name":"Spike Antigen Reservoir","cat":"integrator","tier":2,"radius":16,"source":"extended","support":"moderate","mechanism":"Persistent Spike protein or subgenomic RNA in gut-associated lymphoid tissue, lymph nodes, and monocytes sustains low-level sPLA2-IIA induction, fibrinogen seeding, and alpha7 nAChR downregulation beyond acute viral clearance.","venom":"None - host persistence mechanism","tags":["antigen persistence","Long COVID driver","viral reservoir","monocyte"],"metrics":[],"refs":[],"connections":[]},
-{"id":"N52","num":52,"name":"TIMP3-MMP9 Disinhibition","cat":"integrator","tier":2,"radius":14,"source":"extended","support":"moderate-strong","mechanism":"SARS-CoV-2 3CLpro cleaves TIMP3, removing brake on MMP-9. Disinhibited MMP-9 cleaves occludin, claudin-5, and ZO-1, directly dismantling BBB tight junctions. Mechanistic bridge between viral protease activity and Node 11 BBB dysfunction.","venom":"SVMP metalloprotease MMP-mimicry","tags":["TIMP3","MMP-9","3CLpro","BBB","tight junction"],"metrics":[],"refs":["Koudelka_TIMP3_3CLpro_PNAS_2021"],"connections":[]},
-{"id":"N53","num":53,"name":"Gut-Brain LPS Axis","cat":"bbb","tier":2,"radius":14,"source":"extended","support":"moderate","mechanism":"COVID-19 gut dysbiosis increases intestinal permeability, allowing LPS translocation into systemic circulation. LPS activates TLR4 on BBB endothelium, upregulates MMP-9, induces NF-kB, and increases tight junction permeability.","venom":"None - host dysbiosis amplifier","tags":["LPS","gut dysbiosis","TLR4","BBB permeability","gut-brain axis"],"metrics":[],"refs":[],"connections":[]},
-{"id":"N54","num":54,"name":"Mitochondrial Warburg/OXPHOS Repression Hub","cat":"membrane","tier":1,"radius":16,"source":"extended","support":"moderate-strong","mechanism":"Axis II mitochondrial hub: OXPHOS repression, HIF-1alpha/EPAS1 Warburg-like glycolytic shift, acylcarnitine accumulation, beta-oxidation impairment, and energy failure. Bridge between membrane injury, inflammatory tone, and Node 11 endothelial/BBB permeability.","venom":"Venom cardiotoxin/PLA2-driven organelle membrane injury through bioenergetic collapse.","metrics":[{"k":"OXPHOS","v":"NDUF/COX/ATP synthase down"},{"k":"Glycolysis","v":"HK1/2, PFKP, GAPDH, LDHA up"},{"k":"Acylcarnitines","v":"propionyl-, isovaleryl-, butyryl-, octanoyl-"}],"refs":["Ansone_iScience_2026_multiomics"],"tags":["mitochondria","Warburg shift","OXPHOS repression","acylcarnitines","Axis II","Node 11"],"connections":[]},
-{"id":"N55","num":55,"name":"Cardiolipin-sPLA2-IIA / mtROS-DAMP Loop","cat":"spla2","tier":1,"radius":17,"source":"extended","support":"strong","mechanism":"Host sPLA2-IIA and Spike-associated injury converge on mitochondrial cardiolipin hydrolysis, mtROS generation, mtDNA DAMP release, cGAS-STING/NLRP3 activation, complement sustain, NET priming, and Node 11 barrier leak. Main cardiolipin/mtDNA DAMP feed-forward amplifier.","venom":"Venom sPLA2 and cardiotoxin convergence at phospholipid/cardiolipin membranes; His48-Asp99 catalytic logic.","metrics":[{"k":"MC_r","v":"mtROS_DAMP +0.677"},{"k":"Sobol_ST","v":"k3 up to 0.96 Node11"},{"k":"Target","v":"varespladib high leverage"}],"refs":["Section8_MonteCarlo_Node11","Sobol_Node11_N51_Extended","Ansone_iScience_2026_multiomics"],"tags":["cardiolipin","mtROS","mtDNA DAMP","sPLA2-IIA","cGAS-STING","NLRP3","NETs","complement"],"connections":[]},
-{"id":"N56","num":56,"name":"Incomplete Mitophagy / PINK1-OPA1 Rebound Failure","cat":"integrator","tier":1,"radius":15,"source":"extended","support":"moderate-strong","mechanism":"Recovery-phase mitochondrial repair is incomplete in persistence states. PINK1-mediated mitophagy initiation, OPA1-driven fusion, and FECH/heme-Fe-S recovery may partially rebound, but insufficient flux permits mtROS/DAMP persistence and N51 reservoir maintenance.","venom":"Resolution failure after venom-like phospholipid injury.","metrics":[{"k":"PINK1/OPA1 support","v":"Adjunct"},{"k":"Clearance gain","v":"+18-22% incremental N51"},{"k":"Triple + mitophagy","v":"98-99.8% clearance"}],"refs":["Sobol_GSA_Methodology_June2026","Ansone_iScience_2026_rebound"],"tags":["PINK1","OPA1","mitophagy","mitochondrial repair","N51","reservoir clearance"],"connections":[]},
-{"id":"N57","num":57,"name":"Lysosomal-Mitochondrial Antigen Processing Crosstalk","cat":"integrator","tier":2,"radius":14,"source":"extended","support":"moderate","mechanism":"ORF3a-VPS39, lysosomal cholesterol egress, impaired antigen processing, and mitochondrial stress form a crosstalk module sustaining low-level T-cell drive and reducing antigen clearance. Connects lysosomal dysfunction to N51 reservoir maintenance.","venom":"Functional persistence module.","metrics":[{"k":"Route","v":"ORF3a-VPS39"},{"k":"Effect","v":"antigen processing impaired"},{"k":"Reservoir","v":"N51 maintenance"}],"refs":["Section8_Lysosomal_Mito_Crosstalk"],"tags":["lysosome","VPS39","ORF3a","antigen processing","N51","T-cell drive"],"connections":[]},
-{"id":"N58","num":58,"name":"LINE-1 / Genomic Persistence Risk Module","cat":"integrator","tier":2,"radius":13,"source":"extended","support":"scoped hypothesis","mechanism":"Scoped persistence-risk layer for LINE-1, plasmid/SV40-context caveats, and prolonged antigen input into shared spikeopathy pathways. Bounded hypothesis feeding N51 antigen persistence.","venom":"No direct venom analog; persistence-risk module.","metrics":[{"k":"Scope","v":"shared spikeopathy only"},{"k":"Weight","v":"caveated/supporting"}],"refs":["Handoff_Directives_Edogawa_Plasmid_SV40_Scope"],"tags":["LINE-1","plasmid caveat","SV40 caveat","spikeopathy","N51","persistence risk"],"connections":[]},
-{"id":"N64","num":64,"name":"Pediatric Vulnerability Layer","cat":"integrator","tier":1,"radius":16,"source":"extended","support":"strong",
-"mechanism":"Children exhibit distinct susceptibility at Node 11 and Axes I/IV. Galichina et al. (2026): fulminant pulmonary microvascular endothelial injury, CD95-mediated apoptosis, IL-6/TNF-alpha/IFN-gamma elevation in a 2-month-old infant with SUID associated with SARS-CoV-2. Mehrotra-Varma et al. (2026): MIS-C associated with elevated long-term multisystem risk up to 4.5 years (cardiovascular, neurological, GI, hypertensive, respiratory). Yonker (PolyBio 2026): neutrophil-endothelial injury in pediatric Long COVID.",
-"venom":"None - host vulnerability amplifier; extends Axis I/IV microvascular injury and Node 11 chronicity to pediatric hosts.",
-"metrics":[{"k":"Galichina 2026","v":"Infant SUID: CD95+ apoptosis, IL-6/TNF"},{"k":"Mehrotra-Varma 2026","v":"MIS-C: multisystem risk to 4.5 yrs"},{"k":"Yonker PolyBio 2026","v":"Neutrophil activation pediatric LongCOVID"}],
-"refs":["Galichina_SUID_2026","Mehrotra-Varma_MIS-C_LongTerm_2026","Yonker_PolyBio2026_Pediatric_LongCOVID"],
-"tags":["pediatric","MIS-C","SUID","Axis I","Axis IV","Node 11 chronicity","infant endothelial injury","NEW Jun16"],"connections":[]},
-{"id":"N65","num":65,"name":"Myeloid Reservoir (Sefik PolyBio 2026)","cat":"integrator","tier":2,"radius":15,"source":"extended","support":"strong",
-"mechanism":"Macrophages and neutrophils are productively infected; lineage depletion achieves antigen clearance (Sefik, PolyBio 2026). Myeloid reservoirs constitute a key R(t) forcing input into Node 11 by sustaining ongoing antigen presentation and mtROS generation in circulating innate immune cells.",
-"venom":"None - host myeloid persistence mechanism.",
-"metrics":[{"k":"Source","v":"Sefik PolyBio Spring 2026"},{"k":"Evidence","v":"Lineage depletion achieves clearance"},{"k":"Impact","v":"Direct R(t) Node 11 forcing"}],
-"refs":["Sefik_PolyBio2026_MyeloidReservoir"],
-"tags":["myeloid reservoir","macrophage","neutrophil","PolyBio 2026","Sefik","R(t) forcing","Node 11","NEW Jun16"],"connections":[]},
-{"id":"N66","num":66,"name":"Gut Persistence Hub (Henrich/Buggert/Huot)","cat":"bbb","tier":2,"radius":15,"source":"extended","support":"strong",
-"mechanism":"Gut persistence of SARS-CoV-2 antigen detected in 20-25% of patients up to 4.5 years post-infection (Henrich, PolyBio 2026). Lymphoid/gut compartment persistence confirmed by Buggert and Huot. Immune sensing without clearance drives compartmentalized antigen and mtROS, sustaining Node 11 R(t) and the N53 gut-brain axis.",
-"venom":"None - gut compartment reservoir.",
-"metrics":[{"k":"Prevalence","v":"20-25% of patients"},{"k":"Duration","v":"Up to 4.5 years"},{"k":"Mechanism","v":"Immune sensing without clearance"}],
-"refs":["Henrich_PolyBio2026_GutPersistence","Buggert_PolyBio2026_LymphoidPersistence","Huot_PolyBio2026_GutPersistence"],
-"tags":["gut persistence","Long COVID","Henrich","Buggert","Huot","PolyBio 2026","N53","Node 11 R(t)","NEW Jun16"],"connections":[]},
-{"id":"N67","num":67,"name":"T-cell Exhaustion / MENSA Biosensor","cat":"integrator","tier":2,"radius":14,"source":"extended","support":"strong",
-"mechanism":"CD8+ T-cell exhaustion in effector memory populations (Painter, PolyBio 2026) and MENSA positivity (Lee, PolyBio 2026) function as persistence biosensors indicating ongoing antigen drive. These signals directly feed chronic T-cell stimulation of N51 antigen reservoir maintenance and the Node 11 R(t) forcing term.",
-"venom":"None - immunological persistence marker.",
-"metrics":[{"k":"Painter PolyBio 2026","v":"CD8 exhaustion in EM populations"},{"k":"Lee PolyBio 2026","v":"MENSA positivity as persistence marker"}],
-"refs":["Painter_PolyBio2026_CD8Exhaustion","Lee_PolyBio2026_MENSA"],
-"tags":["T-cell exhaustion","CD8","MENSA","Painter","Lee","PolyBio 2026","N51","antigen persistence","NEW Jun16"],"connections":[]},
-{"id":"N68","num":68,"name":"Maraviroc + Pravastatin (Salmon Pilot)","cat":"integrator","tier":2,"radius":14,"source":"extended","support":"strong",
-"mechanism":"PolyBio 2026 pilot (Salmon): maraviroc + pravastatin reduced GI symptoms in 13/19 patients, with reductions in microclots, platelet viral RNA/spike, and plasma spike. First clinical signal for pharmacological persistence clearance in Long COVID/PVS. Targets N51 reservoirs and Axis IV microclot burden. Priority 2 therapeutic.",
-"venom":"None - therapeutic intervention node.",
-"metrics":[{"k":"GI symptom reduction","v":"13/19 patients"},{"k":"Microclot effect","v":"Reduced platelet microclots"},{"k":"Viral RNA/spike","v":"Reduced platelet RNA and plasma spike"}],
-"refs":["Salmon_PolyBio2026_MaravirocPravastatin_Pilot"],
-"tags":["maraviroc","pravastatin","Salmon","PolyBio 2026","persistence clearance","Priority 2","N51","Axis IV","NEW Jun16"],"connections":[]},
-{"id":"N69","num":69,"name":"VYD2311 mAb - Persistent Antigen Clearance","cat":"integrator","tier":2,"radius":14,"source":"extended","support":"moderate-strong",
-"mechanism":"VYD2311 (high-dose mAb, Elia PolyBio 2026) is the first commercial program specifically targeting persistent antigen in Long COVID/PVS. Addresses N51 reservoir maintenance as complement to Priority 1 sPLA2-IIA inhibition. Whole-body PET (VanBrocklin/Peluso VIPER) provides monitoring infrastructure to validate clearance.",
-"venom":"None - therapeutic mAb intervention.",
-"metrics":[{"k":"Program","v":"First commercial Long COVID/PVS mAb"},{"k":"Target","v":"Persistent spike antigen"},{"k":"Monitoring","v":"Whole-body PET / VIPER (VanBrocklin/Peluso)"}],
-"refs":["Elia_PolyBio2026_VYD2311","VanBrocklin_PolyBio2026_PET","Peluso_PolyBio2026_VIPER"],
-"tags":["VYD2311","mAb","Elia","PolyBio 2026","persistent antigen","Priority 2","N51","clearance","NEW Jun16"],"connections":[]},
-{"id":"N70","num":70,"name":"MMT Mitohormetic Rescue (Putrino PolyBio 2026)","cat":"membrane","tier":2,"radius":14,"source":"extended","support":"moderate-strong",
-"mechanism":"Microtesla magnetic therapy (MMT) RCT (Putrino, PolyBio 2026): cognitive and autonomic improvement with 100% adherence and no adverse events. Mechanism: mild mitochondrial stress triggers anti-inflammatory mitohormesis, rescuing Node 11 bistability. Non-pharmacologic adjunct for Node 11 and Axis III autonomic sequelae.",
-"venom":"None - non-pharmacologic therapeutic node.",
-"metrics":[{"k":"RCT outcome","v":"Cognitive and autonomic improvement"},{"k":"Adherence","v":"100%"},{"k":"Adverse events","v":"None"},{"k":"Mechanism","v":"Mitohormesis"}],
-"refs":["Putrino_PolyBio2026_MMT_RCT"],
-"tags":["MMT","microtesla","Putrino","PolyBio 2026","mitohormesis","Node 11 rescue","Axis III","autonomic","NEW Jun16"],"connections":[]},
-{"id":"N71","num":71,"name":"Reinfection R(t) Forcing (Zhang RECOVER-EHR)","cat":"integrator","tier":2,"radius":15,"source":"extended","support":"strong",
-"mechanism":"Zhang RECOVER-EHR cohort: reinfection RR 2.08 for Long COVID sequelae vs first infection. Quantifies amplifying role of repeated antigen exposure in sustaining Axis I/IV pathology and the Node 11 R(t) forcing term in the ODE system. Sobol global sensitivity analysis identifies R(t) as dominant variance driver alongside k3. Supports Priority 1 sPLA2-IIA inhibition as highest-leverage upstream entry point.",
-"venom":"None - quantitative forcing term for ODE/Sobol model.",
-"metrics":[{"k":"Reinfection RR","v":"2.08 (Long COVID sequelae)"},{"k":"Sobol driver","v":"R(t) dominant alongside k3"},{"k":"Therapeutic implication","v":"Priority 1 varespladib reduces R(t) input"}],
-"refs":["Zhang_RECOVER-EHR_Reinfection_RR208"],
-"tags":["reinfection","R(t)","Zhang","RECOVER-EHR","ODE forcing","Sobol","Node 11","Priority 1","NEW Jun16"],"connections":[]}
-],
-links:[
-{"source":"U01","target":"U02"},{"source":"U30","target":"U35"},{"source":"U17","target":"U09"},
-{"source":"U09","target":"U10"},{"source":"U38","target":"U42"},{"source":"U15","target":"U17"},
-{"source":"U33","target":"U34"},{"source":"N09","target":"U26"},{"source":"U40","target":"U41"},
-{"source":"N06","target":"N11"},{"source":"U48","target":"U49"},{"source":"N08","target":"U04"},
-{"source":"U29","target":"U30"},{"source":"U21","target":"U24"},{"source":"N09","target":"U28"},
-{"source":"U02","target":"U03"},{"source":"U11","target":"U35"},{"source":"U08","target":"U09"},
-{"source":"U03","target":"U04"},{"source":"U05","target":"U21"},{"source":"N05","target":"N11"},
-{"source":"U06","target":"U08"},{"source":"U47","target":"U48"},{"source":"U12","target":"U35"},
-{"source":"N01","target":"N05"},{"source":"U37","target":"U38"},{"source":"N06","target":"N09"},
-{"source":"N03","target":"N08"},{"source":"U34","target":"U35"},{"source":"U26","target":"U29"},
-{"source":"U02","target":"U05"},{"source":"N11","target":"U47"},{"source":"N11","target":"U45"},
-{"source":"U25","target":"U26"},{"source":"U28","target":"U29"},{"source":"N05","target":"N06"},
-{"source":"U41","target":"U42"},{"source":"U36","target":"U37"},{"source":"U42","target":"U02"},
-{"source":"U23","target":"U24"},{"source":"U32","target":"U34"},{"source":"U15","target":"U16"},
-{"source":"N02","target":"U33"},{"source":"U13","target":"U25"},{"source":"N03","target":"N11"},
-{"source":"U10","target":"U11"},{"source":"U35","target":"U36"},{"source":"U49","target":"U50"},
-{"source":"U27","target":"U25"},{"source":"U43","target":"U44"},{"source":"N04","target":"N11"},
-{"source":"U18","target":"U03"},{"source":"U10","target":"U12"},{"source":"U50","target":"U01"},
-{"source":"U24","target":"U25"},{"source":"N10","target":"U05"},{"source":"U46","target":"U47"},
-{"source":"N01","target":"N09"},{"source":"N07","target":"N05"},{"source":"U16","target":"U18"},
-{"source":"N02","target":"U32"},{"source":"U22","target":"U24"},{"source":"N09","target":"U25"},
-{"source":"N11","target":"U46"},{"source":"U07","target":"U08"},{"source":"N10","target":"N11"},
-{"source":"N08","target":"N11"},{"source":"N04","target":"N05"},{"source":"U45","target":"U46"},
-{"source":"U16","target":"U17"},{"source":"N51","target":"N01"},{"source":"N51","target":"N04"},
-{"source":"N51","target":"N08"},{"source":"N51","target":"U42"},{"source":"N51","target":"U01"},
-{"source":"N52","target":"N11"},{"source":"N03","target":"N52"},{"source":"N53","target":"N11"},
-{"source":"N53","target":"N52"},{"source":"U38","target":"N53"},{"source":"N01","target":"N55"},
-{"source":"N05","target":"N55"},{"source":"N06","target":"N55"},{"source":"N06","target":"N54"},
-{"source":"N55","target":"N54"},{"source":"N55","target":"N10"},{"source":"N55","target":"N09"},
-{"source":"N55","target":"N11"},{"source":"N54","target":"N11"},{"source":"N54","target":"N51"},
-{"source":"N54","target":"N08"},{"source":"N56","target":"N54"},{"source":"N56","target":"N51"},
-{"source":"N56","target":"N11"},{"source":"N57","target":"N54"},{"source":"N57","target":"N51"},
-{"source":"N51","target":"N57"},{"source":"N51","target":"N54"},{"source":"N53","target":"N10"},
-{"source":"N52","target":"N09"},{"source":"N58","target":"N51"},{"source":"N58","target":"N57"},
-{"source":"N58","target":"N54"},
-{"source":"N65","target":"N11"},{"source":"N65","target":"N51"},
-{"source":"N66","target":"N11"},{"source":"N66","target":"N53"},{"source":"N66","target":"N51"},
-{"source":"N67","target":"N51"},{"source":"N67","target":"N11"},
-{"source":"N64","target":"N11"},{"source":"N64","target":"U03"},{"source":"N64","target":"N08"},
-{"source":"N71","target":"N11"},{"source":"N71","target":"N55"},
-{"source":"N68","target":"N51"},{"source":"N68","target":"N08"},
-{"source":"N69","target":"N51"},
-{"source":"N70","target":"N11"},{"source":"N70","target":"N54"}
-]
+// ═══════════════════════════════════════════════════════
+//  GRAPH DATA — v5.0 (75 nodes, 119 directed edges)
+// ═══════════════════════════════════════════════════════
+
+const AXIS_COLORS = {
+  "1": "#e05c5c",
+  "2": "#e09a3c",
+  "3": "#5ca8e0",
+  "4": "#9b6fe0",
+  "5": "#5ce08a",
+  "spine": "#e0ce5c",
+  "new": "#4f98a3",
+  "clinical": "#888",
+  "integrator": "#a0c4c8"
 };
 
-const svg=d3.select('#graph');
-const container=document.getElementById('canvas');
-let width=container.clientWidth;
-let height=container.clientHeight;
-const g=svg.append('g').attr('class','zoom-layer');
-svg.call(d3.zoom().scaleExtent([0.1,4]).on('zoom',e=>{g.attr('transform',e.transform);}));
-const simulation=d3.forceSimulation(graphData.nodes)
-  .force('link',d3.forceLink(graphData.links).id(d=>d.id).distance(d=>{
-    const s=d.source.source||d.source;
-    const t=d.target.source||d.target;
-    if(s==='spine'&&t==='spine')return 120;
-    if(s==='loop'||t==='loop')return 140;
-    if(s==='extended'||t==='extended')return 80;
-    return 60;
-  }).strength(0.4))
-  .force('charge',d3.forceManyBody().strength(d=>d.source==='spine'?-400:d.source==='loop'?-600:d.source==='extended'?-180:-80))
-  .force('center',d3.forceCenter(width/2,height/2))
-  .force('collision',d3.forceCollide().radius(d=>d.radius+4))
-  .force('x',d3.forceX(width/2).strength(0.03))
-  .force('y',d3.forceY(height/2).strength(0.03));
+const nodes = [
+  // ── SPINE NODES N01–N11 ──────────────────────────────────────────────────
+  {id:"N01",label:"Spike Protein
+Structure",axis:"spine",r:11,desc:"S1/S2 spike protein: ACE2 binding (RBD), heparan sulfate co-receptor docking (NTD), furin cleavage site (S1/S2 junction). Structural basis for multi-receptor tropism.",source:"Core thesis"},
+  {id:"N02",label:"ACE2 Docking
+& Internalization",axis:"spine",r:10,desc:"High-affinity ACE2 binding triggers endocytosis and ACE2 downregulation, reducing Ang-1-7 production and shifting RAS toward Ang-II/AT1R pro-inflammatory signaling.",source:"Core thesis"},
+  {id:"N03",label:"Heparan Sulfate
+Co-receptor",axis:"spine",r:9,desc:"NTD binds heparan sulfate proteoglycans (HSPGs) on endothelial cells. HS captures spike and enhances ACE2-dependent entry. Enables glycocalyx bridging in vascular injury.",source:"Core thesis"},
+  {id:"N04",label:"sPLA2-IIA
+Toxin-like Activity",axis:"spine",r:10,desc:"Secreted phospholipase A2 group IIA: spike-mimetic. Membrane phospholipid hydrolysis → LPC, LPA, AA release. Converges with snake PLA2 venom toxins. Highest serum levels predict mortality.",source:"Core thesis"},
+  {id:"N05",label:"nAChR / Cholinergic
+Signaling",axis:"spine",r:9,desc:"α7-nAChR: SARS-CoV-2 NTD homology with α-bungarotoxin binding site. Cholinergic anti-inflammatory pathway disrupted. Nicotine protective mechanism. DCP/Ziconotide cross-reference.",source:"Core thesis"},
+  {id:"N06",label:"Fibrin Amyloid
+Microclots",axis:"spine",r:11,desc:"Spike induces fibrinogen amyloid misfolding → fibrinolysis-resistant microclots. α/β/γ fibrinogen chains misfolded. Co-entraps cytokines. Hallmark of Long COVID blood.",source:"Core thesis + Pretorius 2026"},
+  {id:"N07",label:"Complement
+Activation",axis:"spine",r:9,desc:"Spike activates classical and lectin pathways. C3a/C5a anaphylatoxins. TCC (C5b-9 MAC) pore formation on endothelium. Amplifies coagulation and endothelial injury.",source:"Core thesis"},
+  {id:"N08",label:"Endothelial
+Dysfunction",axis:"spine",r:11,desc:"Glycocalyx degradation, syndecan shedding, vWF/Ang-2 release, ICAM-1/VCAM-1 upregulation, eNOS uncoupling. Central convergence node for microclot formation and organ injury.",source:"Core thesis"},
+  {id:"N09",label:"Cytokine Storm
+/ IL-6 Axis",axis:"spine",r:10,desc:"IL-6/IL-1β/TNF-α amplification loop. NLRP3 inflammasome → IL-18/IL-1β → macrophage activation syndrome. Siltuximab (IL-6 blockade) PREVAIL trial targeting this node.",source:"Core thesis + Spring 2026"},
+  {id:"N10",label:"NETosis
+/ Neutrophil",axis:"spine",r:10,desc:"Spike-stimulated NETs: citrullinated histones, MPO-DNA complexes. NET-embedded microclots. Cathepsin G (also cleaves spike → xenoAMP generation). NETosis feeds FMC type 2.",source:"Core thesis + Zhang 2026"},
+  {id:"N11",label:"BBB Permeability
+/ ODE Node",axis:"spine",r:12,desc:"Node 11 ODE: mtROS → NF-κB → IL-6/TNF-α → mtROS (chronicity amplifier). S*local 9.456 ng/mL operational threshold. B=0.4 attractor crossing. Drives neuroinflammation and Long COVID chronicity.",source:"Core thesis v7.0 + ODE v7.1"},
 
-const link=g.append('g').attr('class','links')
-  .selectAll('line').data(graphData.links).enter().append('line')
-  .attr('class','link')
-  .attr('stroke',d=>{const sc=(d.source.cat||'integrator');return CAT_COLOR[sc]||'#4a5568';})
-  .attr('stroke-width',d=>{const s=d.source.source||'unified';return s==='spine'?1.8:s==='loop'?2:s==='extended'?1.2:0.8;});
+  // ── UTILITY NODES U01–U50 (selected key nodes) ──────────────────────────
+  {id:"U01",label:"NLRP3
+Inflammasome",axis:"spine",r:8,desc:"NLRP3 activation by spike protein fragments and mtROS. IL-1β/IL-18 release. Tier 1 node reweighted to reflect Long COVID severity correlation (v7.0).",source:"Core thesis"},
+  {id:"U02",label:"Ang-II / AT1R
+Signaling",axis:"1",r:8,desc:"ACE2 downregulation → excess Ang-II → AT1R → ROS generation, vasoconstriction, fibrosis. Feeds N11 mtROS loop and endothelial dysfunction.",source:"Core thesis"},
+  {id:"U03",label:"RAS Imbalance
+Ang-1-7 Loss",axis:"1",r:7,desc:"Loss of ACE2-mediated Ang-II catabolism. Reduced Ang-1-7/MasR anti-inflammatory signaling. Systemic consequence of spike–ACE2 binding.",source:"Core thesis"},
+  {id:"U04",label:"Hepcidin
+/ Iron Dysregulation",axis:"3",r:7,desc:"IL-6 → hepcidin upregulation → ferroportin internalization → hypoferremia despite adequate iron stores. Functional iron deficiency anemia in Long COVID.",source:"Core thesis"},
+  {id:"U05",label:"Mast Cell
+Activation",axis:"1",r:8,desc:"Spike triggers mast cell degranulation → histamine, PGD2, tryptase, IL-6, TNF-α. Contributes to MCAS overlap in Long COVID.",source:"Core thesis"},
+  {id:"U06",label:"sPLA2 Lipid
+Mediator Release",axis:"spine",r:7,desc:"sPLA2 hydrolysis products: LPC (lyso-phosphatidylcholine), LPA, AA → eicosanoid cascade. Membrane disruption adjacent to venom PLA2 mechanism.",source:"Core thesis"},
+  {id:"U07",label:"Microthrombi
+/ Coagulopathy",axis:"4",r:9,desc:"Systemic fibrin microthrombi: lungs, brain, heart, kidney. DIC spectrum in severe. Microclot burden correlates with Long COVID symptom severity (Pretorius 2022–2026).",source:"Core thesis + Pretorius 2026"},
+  {id:"U08",label:"Platelet
+Activation",axis:"4",r:9,desc:"Spike directly activates platelets via ACE2 and FcγRIIA. P-selectin exposure. Platelet–monocyte aggregate formation (29% of monocytes carry platelet aggregates in LC vs. 5% controls — Thompson 2026).",source:"Thompson 2026 preprint"},
+  {id:"U09",label:"Pericyte
+/ Basement Membrane",axis:"4",r:7,desc:"PDGFR-β pericyte loss. Basement membrane disruption. BBB structural compromise. Contributes to N11 threshold model.",source:"Core thesis"},
+  {id:"U10",label:"Mitochondrial ROS
+(mtROS)",axis:"spine",r:10,desc:"Central chronicity amplifier. Produced by: spike-induced ETC complex I/III dysfunction, platelet glycolytic shift, NK OXPHOS loss (Satpathy), GC B cell OXPHOS failure (Loci). Feeds N11 loop.",source:"Core thesis + Satpathy 2026 + Loci Spring 2026"},
+  {id:"U11",label:"NF-κB
+Activation",axis:"spine",r:9,desc:"Master inflammatory transcription factor. Activated by: mtROS (N11 loop), spike-ACE2, IL-1β/TNF-α, NETosis products, gut TNF-dominant GI infection. Drives IL-6, ICAM-1, NLRP3.",source:"Core thesis + Cherry Spring 2026"},
+  {id:"U12",label:"Autophagy
+/ Mitophagy Failure",axis:"3",r:7,desc:"Spike-induced incomplete mitophagy (PINK1/OPA1 axis). Damaged mitochondria accumulate → sustained mtROS. Contributes to N11 chronicity.",source:"Core thesis v7.0"},
+  {id:"U13",label:"ER Stress
+/ UPR",axis:"3",r:7,desc:"Spike overloads ER protein folding machinery → UPR activation (IRE1α, PERK, ATF6). Contributes to neuronal dysfunction and cytokine amplification.",source:"Core thesis"},
+  {id:"U14",label:"Oxidative Stress
+/ Lipid Peroxidation",axis:"3",r:8,desc:"4-HNE, MDA accumulation from sPLA2 and mtROS. Fibrinogen carbonylation. Glycation-AGE modifications on α-fibrinogen in Long COVID (prediabetic FMC pattern — Pretorius 2026).",source:"Core thesis + Pretorius PTM 2026"},
+  {id:"U15",label:"Serotonin
+Depletion",axis:"5",r:8,desc:"Spike-infected enterochromaffin cells → reduced serotonin production. Low 5-HT → impaired vagal signaling, brain fog, fatigue. Maraviroc+pravastatin trial: serotonin normalized in 6 patients (Salmon 2026).",source:"Salmon Spring 2026"},
+  {id:"U16",label:"Gut Dysbiosis
+/ LPS Leakage",axis:"3",r:8,desc:"Gut microbiome disruption → zonulin → tight junction leak → LPS/spike translocation. Zonulin-mediated leakage confirmed by Yonker; lorazotide targets this node.",source:"Yonker Spring 2026 + Moschovis 2026"},
+  {id:"U17",label:"Vagal Nerve
+Dysfunction",axis:"5",r:8,desc:"Dorsal NTS neuroinflammation (VanElzakker PET). Impaired cholinergic anti-inflammatory reflex. VNS trial: salivary S100/NET/SAA/amyloid proteins downregulated in active arm (Freire 2026).",source:"VanElzakker + Freire Spring 2026"},
+  {id:"U18",label:"HMGB1
+/ DAMPs",axis:"3",r:7,desc:"HMGB1 released by necrotic cells and NETosis. Amplifies NLRP3 and NF-κB. DAMPs from spike-induced pDC/T cell necrosis (N12 xenoAMP mechanism) feed this node.",source:"Core thesis + Zhang 2026 implied"},
+  {id:"U19",label:"Weibel-Palade
+/ vWF / Ang-2",axis:"4",r:7,desc:"N18 in prior JSON. Endothelial activation releases vWF multimers and Ang-2. vWF promotes platelet aggregation, thrombosis. Ang-2 promotes vascular permeability.",source:"Core thesis v7.0"},
+  {id:"U20",label:"Cardiolipin
+/ sPLA2-mtROS Loop",axis:"spine",r:7,desc:"N55 in expansion. Cardiolipin (inner mitochondrial membrane phospholipid) cleaved by sPLA2-IIA → cytochrome c release → mtROS amplification. Direct sPLA2–mitochondrial toxin-like link.",source:"Core thesis v7.0"},
+  {id:"U21",label:"PINK1/OPA1
+Mitophagy Gate",axis:"3",r:7,desc:"N56. Incomplete mitophagy: PINK1 accumulation on depolarized mitochondria; OPA1 cleavage prevents fusion. Damaged organelles escape clearance → persistent mtROS source.",source:"Core thesis v7.0"},
+  {id:"U22",label:"Purinergic
+/ ATP Signaling",axis:"3",r:6,desc:"ATP release from damaged cells activates P2X7/P2Y12. P2X7 → NLRP3 priming. P2Y12 → platelet activation. Extracellular ATP is a DAMP linking immune and coagulation axes.",source:"Core thesis"},
+  {id:"U23",label:"Exosome
+/ EV Release",axis:"2",r:7,desc:"SARS-CoV-2 RNA packaged in extracellular vesicles. Spreads viral RNA systemically beyond replication-competent particles. VARA biochip (Reátegui) detects viral RNA in EVs from accessible fluids.",source:"Reátegui Spring 2026"},
+  {id:"U24",label:"Brogna Peptide
+/ Neurotoxin Channel",axis:"5",r:7,desc:"N60. Spike-derived peptide: toxin-like CNS channel formation. Contributes to N11 ODE v7.1 input term. Convergence with venom-peptide toxin literature.",source:"Core thesis + ODE v7.1"},
+  {id:"U25",label:"Phospholipid
+Head Group Release",axis:"spine",r:6,desc:"sPLA2 → phospholipid head group liberation → ceramide, sphingosine-1-P. Lipid signaling convergence with venom mechanism.",source:"Core thesis"},
+  {id:"U26",label:"Microbiome
+/ Enterocyte ACE2",axis:"2",r:7,desc:"Enterocyte ACE2 mediates GI viral entry. Microbiome dysbiosis persists post-infection. Direct gut reservoir pathway (Cherry GI organoid: TNF/NF-κB dominant, chronic infection >21 days).",source:"Cherry/Penn Spring 2026"},
+  {id:"U27",label:"Astrocyte
+Activation",axis:"5",r:7,desc:"Reactive astrogliosis in Long COVID. S100B release. Contributes to neuroinflammation and impaired metabolic support of neurons. Brainstem astrocytes around NTS.",source:"Core thesis + VanElzakker"},
+  {id:"U28",label:"Microglia
+Activation",axis:"5",r:9,desc:"TSPO PET (VanElzakker Spring 2026): microglial activation confirmed in dorsal brainstem/NTS in Long COVID AND pre-2018 ME/CFS. Shared pathway between both conditions.",source:"VanElzakker Spring 2026"},
+  {id:"U29",label:"Small Fiber
+Neuropathy",axis:"5",r:7,desc:"Skin punch biopsy study ongoing (VanElzakker). Intraepidermal nerve fiber density reduced in Long COVID subset. Autonomic neuropathy pathway.",source:"VanElzakker Spring 2026"},
+  {id:"U30",label:"Post-Exertional
+Malaise (PEM)",axis:"5",r:8,desc:"PEM: hallmark of Long COVID + ME/CFS. Metabolic crash after exertion. Linked to mitochondrial OXPHOS failure, NK exhaustion, and N11 ODE attractor threshold crossing.",source:"Core thesis"},
+  {id:"U31",label:"Ang-1-7 / MasR
+Anti-inflammatory",axis:"1",r:6,desc:"ACE2 product Ang-1-7 binds MasR: vasodilation, anti-fibrotic, anti-inflammatory, anti-thrombotic. Depleted when ACE2 is downregulated/internalized.",source:"Core thesis"},
+  {id:"U32",label:"Immune Complex
+Formation",axis:"4",r:8,desc:"Anti-SARS-CoV-2 antibodies + circulating spike → immune complexes → FcγR activation → neutrophil NETosis (Yonker mechanism). Pediatric gut leak pathway node.",source:"Yonker Spring 2026"},
+  {id:"U33",label:"Phospholipase
+A2 Receptor",axis:"3",r:6,desc:"sPLA2-IIA binds PLA2R1 on renal tubular cells. Autoantibodies to PLA2R in membranous nephropathy overlap. Renal injury pathway in COVID-19.",source:"Core thesis"},
+  {id:"U34",label:"Warburg
+/ OXPHOS Shift",axis:"3",r:7,desc:"N54. Aerobic glycolysis in infected immune cells. Platelet glycolytic ATP shift (Baumsell). NK OXPHOS loss (Satpathy). GC B cell OXPHOS failure (Loci). Fuels mtROS accumulation.",source:"Baumsell + Satpathy 2026 + Loci Spring 2026"},
+  {id:"U35",label:"RAAS Dysfunction
+/ Aldosterone",axis:"1",r:6,desc:"ACE2 downregulation → aldosterone escape. Sodium/water retention, endothelial oxidative stress, aldosterone-NF-κB axis feeds inflammation.",source:"Core thesis"},
+  {id:"U36",label:"T Cell
+Exhaustion (CD8)",axis:"2",r:9,desc:"Spike-specific CD8: ~50% IFN-γ production vs recovered; 0–2 proliferation cycles vs 4–5; 2B4+Tox co-expression; TCF1/CD127 depleted; ST6GAL1/THEMIS/S100A11 (Satpathy). Painter/Wherry biosensor: ~40% LC positive.",source:"Painter/Wherry Spring 2026 + Satpathy 2026"},
+  {id:"U37",label:"Autoantibodies
+/ Molecular Mimicry",axis:"3",r:7,desc:"Anti-ACE2, anti-AQP4, anti-β-adrenergic, anti-muscarinic autoantibodies in Long COVID. Spike epitope homology drives molecular mimicry.",source:"Core thesis"},
+  {id:"U38",label:"LPS
+/ Endotoxemia",axis:"3",r:8,desc:"N53 original. Gut microbiome disruption → LPS translocation → systemic TLR4 activation → NF-κB → IL-6/TNF-α amplification. Feeds N11 loop.",source:"Core thesis + Buggert Spring 2026"},
+  {id:"U39",label:"Surfactant
+/ Glycocalyx Loss",axis:"4",r:7,desc:"Syndecan-1, glypican-1 shedding from endothelial glycocalyx (Pretorius HUVEC study: syndecan ↓ in LC plasma). Exposes endothelium to coagulation components.",source:"Pretorius Spring 2026"},
+  {id:"U40",label:"eNOS Uncoupling
+/ NO Deficit",axis:"4",r:7,desc:"Spike → eNOS uncoupling → superoxide instead of NO. Reduced vasodilation, platelet activation, NF-κB amplification. Converges with sPLA2 lipid toxicity.",source:"Core thesis"},
+  {id:"U41",label:"Renal ACE2
+/ Tubular Injury",axis:"1",r:6,desc:"ACE2 highly expressed in proximal tubular cells. Viral infection + ACE2 loss → tubular injury. AKI risk in severe COVID-19.",source:"Core thesis"},
+  {id:"U42",label:"TGF-β
+/ Fibrosis",axis:"3",r:7,desc:"TGF-β1 upregulation from macrophage activation and endothelial injury → fibrosis (lung, cardiac, renal). TGF-β/furin reduced in Tregs → gut immune tolerance breakdown (Buggert 2026).",source:"Buggert Spring 2026"},
+  {id:"U43",label:"Ferritin
+/ Hyperferritinemia",axis:"3",r:7,desc:"Ferritin as acute phase reactant (IL-6-driven). Macrophage activation syndrome marker. Heavy chain ferritin has direct pro-inflammatory activity.",source:"Core thesis"},
+  {id:"U44",label:"Bradykinin
+Storm",axis:"1",r:7,desc:"ACE2 loss + excess kallikrein → bradykinin accumulation → BKR2 → vasodilation, edema, pain. Converges with sPLA2 and vascular injury.",source:"Core thesis"},
+  {id:"U45",label:"Complement
+TCC (C5b-9)",axis:"4",r:8,desc:"Terminal complement complex MAC on endothelial cells and platelets. C3d deposition in microclots. C3 in FMC complexes (Pretorius 2026). TCC pore formation similar to venom cytolysins.",source:"Core thesis + Pretorius 2026"},
+  {id:"U46",label:"Epstein-Barr
+Reactivation",axis:"2",r:9,desc:"EBV reactivation confirmed in Long COVID cohorts. EBV-specific CD8 T cells persistently activated (Painter). MENSA: EBV-positive in combined 60% signal. VCA-IgG/EA-IgG elevated.",source:"Painter Spring 2026 + Haddad 2024"},
+  {id:"U47",label:"Herpesvirus
+Reactivation",axis:"2",r:8,desc:"CMV, HSV-1, VZV reactivation in Long COVID. HSV-1 shares neurotropic mechanism with SARS-CoV-2 (Eimer: HSV-1 → AD risk 2–3×). Combined MENSA viral signal ~60% (Haddad 2024). IMC2 = valacyclovir targets this.",source:"Eimer Spring 2026 + Haddad 2024"},
+  {id:"U48",label:"pDC Depletion
+/ IFN-α Deficit",axis:"1",r:9,desc:"Plasmacytoid dendritic cells: primary IFN-α producers. XenoAMPs selectively kill pDCs (5.2–68.3× cytotoxicity — Zhang 2026 PNAS). Persistent depletion (up to 7 months) drives susceptibility to viral reactivation.",source:"Zhang 2026 PNAS"},
+  {id:"U49",label:"Macrophage
+Polarization (M2→M1)",axis:"3",r:8,desc:"M2 → M1 polarization shift in Long COVID. M1 pro-inflammatory (TNF-α, IL-12, IL-23). myeloid reservoir: macrophages ~40% infected, sustain viral persistence (Zambidis Yale 2026).",source:"Zambidis Spring 2026"},
+  {id:"U50",label:"Trained Immunity
+/ Epigenetic Reprog.",axis:"3",r:7,desc:"COVID history = #2 transcriptional variance contributor to atherosclerotic plaques (Giannarelli 2026). Transposable element activation. Persistent epigenetic inflammatory reprogramming in myeloid cells.",source:"Giannarelli Spring 2026"},
 
-const node=g.append('g').attr('class','nodes')
-  .selectAll('g').data(graphData.nodes).enter().append('g')
-  .attr('class',d=>`node source-${d.source}`)
-  .call(d3.drag()
-    .on('start',(e,d)=>{if(!e.active)simulation.alphaTarget(0.3).restart();d.fx=d.x;d.fy=d.y;})
-    .on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y;})
-    .on('end',(e,d)=>{if(!e.active)simulation.alphaTarget(0);d.fx=null;d.fy=null;}))
-  .on('click',(e,d)=>showDetail(d))
-  .on('mouseenter',(e,d)=>highlightNode(d))
-  .on('mouseleave',clearHighlight);
+  // ── L NODES (clinical/therapeutic) ──────────────────────────────────────
+  {id:"L01",label:"Long COVID
+Clinical Phenotype",axis:"clinical",r:12,desc:"Long COVID: symptoms ≥12 weeks post-infection. ~10–30% of infected. Cardiopulmonary, neurological, immunological, GI subtypes. FRG PET symptom-specific topology (VanBrockhoven).",source:"PolyBio 2026"},
+  {id:"L02",label:"ME/CFS
+Overlap",axis:"clinical",r:9,desc:"Long COVID → ME/CFS in significant subset. Shared brainstem NTS microglial activation (VanElzakker PET). CHIME program: first PolyBio deep phenotyping of ME/CFS with FRG PET + gut biopsy.",source:"VanElzakker + Peluso Spring 2026"},
+  {id:"L03",label:"Therapeutic
+Targets",axis:"clinical",r:9,desc:"Priority 1A: KLK5 inhibition, platelet/myeloid antivirals, maraviroc+pravastatin. Priority 1B: lorazotide, IMC2+Paxlovid, anti-Th17/S100A8. Priority 2: ARU-002, MMT, siltuximab, VNS.",source:"Thesis v4.2 Therapeutic Table"},
 
-node.append('circle')
-  .attr('r',d=>d.radius)
-  .attr('fill',d=>CAT_COLOR[d.cat]||'#4f9cf0')
-  .attr('fill-opacity',d=>d.source==='spine'?0.92:d.source==='loop'?0.85:d.source==='extended'?0.72:0.45)
-  .attr('stroke',d=>CAT_COLOR[d.cat]||'#4f9cf0')
-  .attr('stroke-opacity',d=>d.source==='unified'?0.6:1);
+  // ── NEW v5.0 NODES ───────────────────────────────────────────────────────
+  {id:"N12",label:"XenoAMP-NGC
+Immune Killing",axis:"new",r:11,isNew:true,desc:"Zhang et al. 2026 PNAS: Spike cleaved by KLK5/elastase/cathepsin G → xenoAMP fragments (30.8% at ≥79.4% probability). XenoAMPs induce bicontinuous cubic phases (NGC) in membranes → transmembrane pores (1.46–1.86 nm). Selective killing: pDC 5.2–68.3×; CD4 T 6.4×; CD8 T 5.4×. Monocytes/neutrophils spared (spheroidal — lack NGC membrane regions). Omicron T547K mutation → smaller pores → attenuated lymphocyte depletion.",source:"Zhang et al. 2026 PNAS"},
+  {id:"N13",label:"NK Hematopoietic
+Arrest",axis:"new",r:9,isNew:true,desc:"NK precursor accumulation in lymph nodes + intermediate maturation arrest in bone marrow → functionally immature NK cells in circulation. Confirmed in NHP Long COVID model (PolyBio Fall 2025). Canonical NK maturation restored in resolved animals. FCER1G+ terminally differentiated NK cells in LC (Satpathy 2026).",source:"PolyBio Fall 2025 + Satpathy 2026"},
+  {id:"N51",label:"Viral Persistence
+Reservoir Hub",axis:"new",r:12,isNew:true,desc:"Confirmed multi-site reservoir (v5.0): Ileum (replication-competent NHP outgrowth, Huot/Pasteur), megakaryocytes/platelets (~0.8% infected; infectious transfer to macrophages, Baumsell), macrophages (~40%), neutrophils (~40%; sgRNA at 4h, Zambidis), GI organoid (chronic >21 days, Cherry), cervical lymph nodes (T cells: Painter biosensor), bone marrow, atherosclerotic plaques (Giannarelli), myocardium/brain (Xian Zhang autopsy ~4%), female reproductive tract (Roan early data), T lymphocytes (FIPV sgRNA confirmed, Balakumar 2026). EVs carry viral RNA systemically (VARA biochip).",source:"Multi-source v5.0 — Baumsell/Cherry/Huot/Zambidis/Xian Zhang/Roan/Balakumar 2026"},
+  {id:"N52",label:"Immune Exhaustion
+Cascade",axis:"new",r:11,isNew:true,desc:"Multi-arm exhaustion: CD8 TEM (THEMIS/S100A11/ST6GAL1; ~50% IFN-γ; 0–2 proliferation cycles; 2B4+Tox; TCF1/CD127 depleted). CD4 TCM (BACH2/LEF1 quiescence). NK (FCER1G+ terminally differentiated via galectin-9→P4HB). pDCs (xenoAMP-depleted). GC B cells (disrupted kinetics; IgM+ extrafollicular; OXPHOS↓). MENSA: ~40% active SARS; ~60% including herpesviruses (Haddad 2024). EBV-specific CD8 co-activated in subset.",source:"Painter/Loci/Satpathy/Haddad 2024/Zhang 2026 PNAS"},
+  {id:"N53",label:"Neurodegeneration
+Risk Layer",axis:"new",r:9,isNew:true,desc:"Brain-derived p-tau 217: 14% LC positive vs 3% ME/CFS vs <2% HC (VanElzakker Spring 2026). α-synuclein aggregation from spike (Miller/Yale 2026 — new 2026 finding). Amyloid-β from spike (Miller 2025). HSV-1 + SARS-CoV-2 shared enveloped neurotropic AD mechanism (Eimer Harvard). Retinal ERG waveform abnormalities. 96-well drug screen ongoing.",source:"VanElzakker + Miller + Eimer Spring 2026"},
+  {id:"N64",label:"Pediatric/Young
+Adult Vulnerability",axis:"new",r:9,isNew:true,desc:"Gut reservoir → zonulin → spike → immune complexes → neutrophil NETosis → endothelial injury → microclots → cardiovascular symptoms. n=23 LC children + young adults + 61 controls: microclots elevated; elongated morphology (Yonker Spring 2026). Lorazotide trials include ages 7–50 (Moschovis 2026). FIPV: younger cats disproportionately affected by T cell lymphoid depletion (Balakumar 2026).",source:"Yonker + Moschovis + Balakumar Spring 2026"},
+  {id:"N74",label:"Galectin-9
+NK Terminal Diff.",axis:"new",r:8,isNew:true,desc:"LC-specific signal (Satpathy et al. 2026): Galectin-9 (monocytes) → P4HB (NK cells) → terminal NK differentiation. FCER1G+ terminally differentiated NK cells abundant in LC; NFKB1 homeostatic NK preserved in recovered. This monocyte→NK crosstalk drives irreversible NK exhaustion and is absent in non-LC COVID-recovered.",source:"Satpathy et al. 2026 (Emory)"},
+  {id:"N75",label:"GC B Cell
+Disruption / LN",axis:"new",r:9,isNew:true,desc:"Cervical lymph node FNA (Loci/Penn Spring 2026): GC B cells severely disrupted 0–6 months in LC. Reversed kinetics (late-appearing GC in some LC patients). Neutralizing antibodies reduced. CITE-seq: somatic hypermutation reduced; clonal expansion reduced. IgM+ memory B cells expanded (extrafollicular — bypassing somatic selection). OXPHOS pathway DOWN in memory B cells. ISG signature massively enriched in subset. Painter/Wherry now co-analyzing CD4+CD8 T cells from same FNA samples as Loci.",source:"Loci/Penn Spring 2026 + Painter/Wherry collaboration"},
+];
 
-node.filter(d=>d.source==='spine'||d.source==='loop'||d.source==='extended')
-  .append('circle')
-  .attr('r',d=>d.radius+4)
-  .attr('fill','none')
-  .attr('stroke',d=>CAT_COLOR[d.cat]||'#4f9cf0')
-  .attr('stroke-width',1.5)
-  .attr('stroke-opacity',0.45)
-  .attr('stroke-dasharray',d=>d.source==='loop'?'4 3':d.source==='extended'?'2 2':'none');
+const links = [
+  // ── SPINE BACKBONE ──────────────────────────────────────────────────────
+  {s:"N01",t:"N02",c:"#e0ce5c"},{s:"N01",t:"N03",c:"#e0ce5c"},{s:"N01",t:"N04",c:"#e0ce5c"},
+  {s:"N01",t:"N05",c:"#e0ce5c"},{s:"N02",t:"U02",c:"#e05c5c"},{s:"N02",t:"U03",c:"#e05c5c"},
+  {s:"N02",t:"U35",c:"#e05c5c"},{s:"N03",t:"N08",c:"#9b6fe0"},{s:"N04",t:"U06",c:"#e0ce5c"},
+  {s:"N04",t:"U20",c:"#e0ce5c"},{s:"N04",t:"U25",c:"#e0ce5c"},{s:"U06",t:"N08",c:"#9b6fe0"},
+  {s:"N06",t:"U07",c:"#9b6fe0"},{s:"N07",t:"U45",c:"#9b6fe0"},{s:"N07",t:"N08",c:"#9b6fe0"},
+  {s:"N08",t:"U19",c:"#9b6fe0"},{s:"N08",t:"U07",c:"#9b6fe0"},{s:"N09",t:"U11",c:"#5ca8e0"},
+  {s:"N09",t:"U04",c:"#5ca8e0"},{s:"N10",t:"N06",c:"#9b6fe0"},{s:"N10",t:"U32",c:"#9b6fe0"},
+  {s:"U10",t:"N11",c:"#e0ce5c"},{s:"N11",t:"U11",c:"#e0ce5c"},{s:"U11",t:"N09",c:"#e0ce5c"},
+  {s:"N09",t:"U10",c:"#e0ce5c"},{s:"N11",t:"N08",c:"#e0ce5c"},
 
-node.filter(d=>d.source==='spine'||d.source==='loop'||d.radius>11)
-  .append('text')
-  .attr('text-anchor','middle')
-  .attr('dy',d=>d.radius+11)
-  .attr('fill',d=>CAT_COLOR[d.cat]||'#8892a4')
-  .attr('font-size',d=>d.source==='spine'?'10px':'8px')
-  .attr('font-weight',d=>d.source==='spine'?600:400)
-  .text(d=>d.name.length>22?d.name.slice(0,20)+'..':d.name);
+  // ── AXIS 1 — Immune decimation ──────────────────────────────────────────
+  {s:"U02",t:"N08",c:"#e05c5c"},{s:"U02",t:"U10",c:"#e05c5c"},{s:"U03",t:"U31",c:"#e05c5c"},
+  {s:"U44",t:"N08",c:"#e05c5c"},{s:"U05",t:"N09",c:"#e05c5c"},{s:"U05",t:"N10",c:"#e05c5c"},
+  {s:"U31",t:"N08",c:"#e05c5c",note:"anti-inflammatory protection lost"},
+  {s:"U48",t:"N52",c:"#e05c5c"},{s:"U48",t:"U46",c:"#e05c5c",note:"pDC loss enables EBV reactivation"},
 
-simulation.on('tick',()=>{
-  link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
-      .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
-  node.attr('transform',d=>`translate(${d.x},${d.y})`);
+  // ── N12 XenoAMP-NGC (NEW) ────────────────────────────────────────────────
+  {s:"N01",t:"N12",c:"#4f98a3",isNew:true},{s:"N12",t:"U48",c:"#4f98a3",isNew:true},
+  {s:"N12",t:"U36",c:"#4f98a3",isNew:true},{s:"N12",t:"N52",c:"#4f98a3",isNew:true},
+  {s:"N10",t:"N12",c:"#4f98a3",note:"Cathepsin G / NETosis → xenoAMP generation",isNew:true},
+  {s:"N12",t:"U18",c:"#4f98a3",note:"pDC/T cell necrosis → DAMPs",isNew:true},
+
+  // ── AXIS 2 — Viral persistence ──────────────────────────────────────────
+  {s:"N01",t:"N51",c:"#e09a3c"},{s:"N51",t:"N52",c:"#e09a3c"},
+  {s:"N51",t:"U46",c:"#e09a3c"},{s:"N51",t:"U47",c:"#e09a3c"},
+  {s:"N51",t:"U49",c:"#e09a3c"},{s:"U26",t:"N51",c:"#e09a3c"},
+  {s:"U23",t:"N51",c:"#e09a3c"},{s:"U08",t:"N51",c:"#e09a3c"},
+  {s:"N51",t:"U08",c:"#e09a3c",note:"infected platelets → megakaryocyte reservoir"},
+  {s:"N51",t:"U16",c:"#e09a3c",note:"gut reservoir → zonulin leak"},
+  {s:"N51",t:"N64",c:"#e09a3c",isNew:true},{s:"U36",t:"N52",c:"#5ca8e0"},
+  {s:"N52",t:"L01",c:"#e09a3c"},{s:"U46",t:"N52",c:"#e09a3c"},
+  {s:"U47",t:"N52",c:"#e09a3c"},{s:"N75",t:"N52",c:"#e09a3c",isNew:true},
+
+  // ── N13 NK Arrest (NEW) ──────────────────────────────────────────────────
+  {s:"N51",t:"N13",c:"#4f98a3",isNew:true},{s:"N13",t:"N52",c:"#4f98a3",isNew:true},
+  {s:"N13",t:"L01",c:"#4f98a3",isNew:true},
+
+  // ── N74 Galectin-9 (NEW) ─────────────────────────────────────────────────
+  {s:"U49",t:"N74",c:"#4f98a3",isNew:true},{s:"N74",t:"N52",c:"#4f98a3",isNew:true},
+  {s:"N74",t:"N13",c:"#4f98a3",isNew:true},
+
+  // ── N75 GC B Cell (NEW) ──────────────────────────────────────────────────
+  {s:"N51",t:"N75",c:"#4f98a3",isNew:true},{s:"N52",t:"N75",c:"#4f98a3",isNew:true},
+  {s:"N75",t:"U10",c:"#4f98a3",note:"OXPHOS failure in memory B cells feeds mtROS",isNew:true},
+  {s:"N75",t:"L01",c:"#4f98a3",isNew:true},
+
+  // ── AXIS 3 — Chronic inflammation ───────────────────────────────────────
+  {s:"U38",t:"U11",c:"#5ca8e0"},{s:"U38",t:"N11",c:"#5ca8e0"},
+  {s:"U42",t:"N08",c:"#5ca8e0"},{s:"U12",t:"U10",c:"#5ca8e0"},
+  {s:"U21",t:"U10",c:"#5ca8e0"},{s:"U34",t:"U10",c:"#5ca8e0"},
+  {s:"U50",t:"N09",c:"#5ca8e0"},{s:"U14",t:"N06",c:"#5ca8e0"},
+  {s:"U37",t:"N08",c:"#5ca8e0"},{s:"U43",t:"N09",c:"#5ca8e0"},
+  {s:"U04",t:"U43",c:"#5ca8e0"},{s:"U49",t:"N09",c:"#5ca8e0"},
+  {s:"U46",t:"U11",c:"#5ca8e0",note:"EBV reactivation → NF-κB"},
+  // Th17/LTB → N11 (new Zheng 2025)
+  {s:"N52",t:"U11",c:"#5ca8e0",note:"LTB Th17/S100A8 → NF-κB",isNew:true},
+  {s:"U11",t:"U10",c:"#5ca8e0",note:"NF-κB → mtROS feedback",isNew:true},
+
+  // ── AXIS 4 — Vascular ────────────────────────────────────────────────────
+  {s:"U08",t:"N06",c:"#9b6fe0"},{s:"U07",t:"L01",c:"#9b6fe0"},
+  {s:"U45",t:"N08",c:"#9b6fe0"},{s:"U39",t:"N08",c:"#9b6fe0"},
+  {s:"U40",t:"N08",c:"#9b6fe0"},{s:"U32",t:"N10",c:"#9b6fe0"},
+  {s:"U19",t:"U07",c:"#9b6fe0"},{s:"U32",t:"N64",c:"#9b6fe0",isNew:true},
+  // Atherosclerotic plaque reprogramming (Giannarelli)
+  {s:"U50",t:"N08",c:"#9b6fe0",note:"COVID plaque reprogramming → endothelial dysfunction",isNew:true},
+  {s:"U08",t:"U39",c:"#9b6fe0",note:"platelet–monocyte aggregates → glycocalyx loss",isNew:true},
+
+  // ── AXIS 5 — Neurology ───────────────────────────────────────────────────
+  {s:"N11",t:"U28",c:"#5ce08a"},{s:"N11",t:"U27",c:"#5ce08a"},
+  {s:"U17",t:"N11",c:"#5ce08a"},{s:"U28",t:"U27",c:"#5ce08a"},
+  {s:"U17",t:"L01",c:"#5ce08a"},{s:"U15",t:"L01",c:"#5ce08a"},
+  {s:"U24",t:"N11",c:"#5ce08a"},{s:"U30",t:"L02",c:"#5ce08a"},
+  {s:"N11",t:"L02",c:"#5ce08a"},
+  // N53 neurodegeneration (new)
+  {s:"N01",t:"N53",c:"#4f98a3",isNew:true},{s:"N11",t:"N53",c:"#5ce08a",isNew:true},
+  {s:"U47",t:"N53",c:"#5ce08a",note:"HSV-1 shared neurotropic AD mechanism",isNew:true},
+  {s:"U28",t:"N53",c:"#5ce08a",note:"microglial activation → tau pathology",isNew:true},
+  {s:"N53",t:"L01",c:"#5ce08a",isNew:true},
+  // VNS, MMT, Brainstem
+  {s:"U17",t:"U28",c:"#5ce08a"},{s:"L01",t:"L02",c:"#888"},
+
+  // ── CLINICAL ─────────────────────────────────────────────────────────────
+  {s:"N52",t:"L01",c:"#888"},{s:"N13",t:"L02",c:"#888"},
+  {s:"L01",t:"L03",c:"#888"},{s:"L02",t:"L03",c:"#888"},
+  {s:"N64",t:"L01",c:"#9b6fe0",isNew:true},
+  {s:"N51",t:"L01",c:"#e09a3c"},
+];
+
+console.log("✅ Spike–Venom Convergence Map v5.0 — " + nodes.length + " nodes / " + links.length + " edges");
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  D3 FORCE SIMULATION
+// ═══════════════════════════════════════════════════════
+
+const svg = d3.select("#graph");
+const width = () => svg.node().clientWidth;
+const height = () => svg.node().clientHeight;
+
+const g = svg.append("g");
+
+// Zoom
+const zoom = d3.zoom().scaleExtent([0.2,4]).on("zoom", e => g.attr("transform", e.transform));
+svg.call(zoom);
+
+// Arrow markers
+const defs = svg.append("defs");
+["default","new","highlight"].forEach(id => {
+  defs.append("marker")
+    .attr("id","arrow-"+id)
+    .attr("viewBox","0 -5 10 10")
+    .attr("refX",22).attr("refY",0)
+    .attr("markerWidth",6).attr("markerHeight",6)
+    .attr("orient","auto")
+    .append("path")
+    .attr("d","M0,-5L10,0L0,5")
+    .attr("fill", id==="new" ? "#4f98a3" : id==="highlight" ? "#fff" : "#555");
 });
 
-document.getElementById('node-count').textContent=graphData.nodes.length;
-document.getElementById('link-count').textContent=graphData.links.length;
+// Build lookup
+const nodeMap = {};
+nodes.forEach(n => nodeMap[n.id] = n);
 
-let activeFilter='all';
-document.querySelectorAll('.filter-btn:not(#nam-btn)').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.filter-btn:not(#nam-btn)').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    activeFilter=btn.dataset.cat;
+// Build adjacency for inspector
+const adjOut = {}, adjIn = {};
+nodes.forEach(n => { adjOut[n.id]=[]; adjIn[n.id]=[]; });
+links.forEach(l => {
+  if(adjOut[l.s]) adjOut[l.s].push(l.t);
+  if(adjIn[l.t]) adjIn[l.t].push(l.s);
+});
+
+// Simulation
+const sim = d3.forceSimulation(nodes)
+  .force("link", d3.forceLink(links.map(l=>({...l,source:l.s,target:l.t})))
+    .id(d=>d.id).distance(d=>60+d.source.r*2+d.target.r*2).strength(0.4))
+  .force("charge", d3.forceManyBody().strength(d=>-200-(d.r||8)*15))
+  .force("center", d3.forceCenter(600,400))
+  .force("collide", d3.forceCollide(d=>(d.r||8)+6))
+  .force("x", d3.forceX(600).strength(0.03))
+  .force("y", d3.forceY(400).strength(0.03));
+
+// Draw links
+const linkSel = g.append("g").attr("class","links")
+  .selectAll("line").data(links).join("line")
+  .attr("class", d => "link" + (d.isNew?" new-edge":""))
+  .attr("stroke", d=>d.c||"#555")
+  .attr("marker-end", d=>d.isNew?"url(#arrow-new)":"url(#arrow-default)");
+
+// Draw nodes
+const nodeSel = g.append("g").attr("class","nodes")
+  .selectAll("g").data(nodes).join("g")
+  .attr("class","node")
+  .call(d3.drag()
+    .on("start", (e,d)=>{ if(!e.active)sim.alphaTarget(0.3).restart(); d.fx=d.x;d.fy=d.y; })
+    .on("drag",  (e,d)=>{ d.fx=e.x;d.fy=e.y; })
+    .on("end",   (e,d)=>{ if(!e.active)sim.alphaTarget(0); d.fx=null;d.fy=null; }))
+  .on("click", (e,d)=>{ e.stopPropagation(); openInspector(d); highlightNode(d); });
+
+nodeSel.append("circle")
+  .attr("r", d=>d.r||8)
+  .attr("fill", d => AXIS_COLORS[d.axis]||"#888")
+  .attr("stroke", d => d.isNew ? "#ffffff" : "rgba(0,0,0,0.4)")
+  .attr("stroke-dasharray", d => d.isNew ? "3,2" : "none");
+
+nodeSel.append("text")
+  .each(function(d){
+    const lines = d.label.split('
+');
+    const t = d3.select(this);
+    lines.forEach((line,i)=>{
+      t.append("tspan")
+        .attr("x",0)
+        .attr("dy", i===0 ? (-(lines.length-1)*6)+"px" : "12px")
+        .text(line);
+    });
+  });
+
+// Tick
+sim.on("tick", ()=>{
+  linkSel
+    .attr("x1",d=>d.source.x).attr("y1",d=>d.source.y)
+    .attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);
+  nodeSel.attr("transform",d=>`translate(${d.x},${d.y})`);
+});
+
+// Center after settle
+sim.on("end", ()=>{
+  const bounds = g.node().getBBox();
+  const cx = bounds.x + bounds.width/2;
+  const cy = bounds.y + bounds.height/2;
+  const w = width(), h = height();
+  const scale = Math.min(0.9*w/bounds.width, 0.9*h/bounds.height, 1);
+  svg.transition().duration(800)
+    .call(zoom.transform, d3.zoomIdentity.translate(w/2-cx*scale, h/2-cy*scale).scale(scale));
+});
+
+svg.on("click", ()=>{ clearHighlight(); closeInspector(); });
+
+// Inspector
+function openInspector(d){
+  document.getElementById("insp-id").textContent = d.id;
+  document.getElementById("insp-label").textContent = d.label.replace('
+',' ');
+  document.getElementById("insp-axis").textContent = "Axis: " + d.axis;
+  document.getElementById("insp-desc").textContent = d.desc||"";
+  const srcEl = document.getElementById("insp-source");
+  srcEl.innerHTML = "";
+  if(d.source){ const b=document.createElement("span"); b.className="source-badge"; b.textContent=d.source; srcEl.appendChild(b); }
+  if(d.isNew){ const nb=document.createElement("span"); nb.className="new-node-badge"; nb.textContent="✦ New in v5.0"; srcEl.appendChild(nb); }
+  const conn = document.getElementById("insp-connections");
+  const out = adjOut[d.id]||[];
+  const inc = adjIn[d.id]||[];
+  conn.innerHTML = `<strong>Out (${out.length}):</strong> ${out.join(", ")||"—"}<br><strong>In (${inc.length}):</strong> ${inc.join(", ")||"—"}`;
+  document.getElementById("inspector").classList.add("visible");
+}
+function closeInspector(){
+  document.getElementById("inspector").classList.remove("visible");
+}
+
+// Highlight
+let activeNode = null;
+function highlightNode(d){
+  if(activeNode===d){ clearHighlight(); return; }
+  activeNode=d;
+  const connected = new Set([d.id]);
+  links.forEach(l=>{ if(l.s===d.id||l.t===d.id){ connected.add(l.s); connected.add(l.t); } });
+  nodeSel.classed("dimmed", n=>!connected.has(n.id));
+  linkSel.classed("dimmed", l=>l.s!==d.id&&l.t!==d.id);
+  linkSel.classed("highlight", l=>l.s===d.id||l.t===d.id);
+}
+function clearHighlight(){
+  activeNode=null;
+  nodeSel.classed("dimmed",false);
+  linkSel.classed("dimmed",false).classed("highlight",false);
+}
+
+// Filter buttons
+let activeFilter="all";
+document.querySelectorAll(".filter-btn").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    activeFilter = btn.dataset.axis;
     applyFilter();
   });
 });
-document.getElementById('nam-btn').addEventListener('click',()=>{
-  document.getElementById('nam-panel').classList.toggle('visible');
-});
-
 function applyFilter(){
-  node.classed('dimmed',d=>activeFilter!=='all'&&d.cat!==activeFilter&&d.source!=='loop');
-  link.classed('dimmed',d=>activeFilter!=='all'&&d.source.cat!==activeFilter&&d.target.cat!==activeFilter);
-}
-function highlightNode(d){
-  const connected=new Set(graphData.links.filter(l=>l.source.id===d.id||l.target.id===d.id).flatMap(l=>[l.source.id,l.target.id]));
-  node.classed('dimmed',n=>!connected.has(n.id)&&n.id!==d.id);
-  link.classed('dimmed',l=>l.source.id!==d.id&&l.target.id!==d.id);
-}
-function clearHighlight(){
-  if(activeFilter==='all'){node.classed('dimmed',false);link.classed('dimmed',false);}
-  else applyFilter();
+  if(activeFilter==="all"){
+    nodeSel.classed("dimmed",false); linkSel.classed("dimmed",false); return;
+  }
+  const visible = new Set();
+  if(activeFilter==="new"){
+    nodes.filter(n=>n.isNew).forEach(n=>visible.add(n.id));
+  } else {
+    nodes.filter(n=>n.axis===activeFilter).forEach(n=>visible.add(n.id));
+  }
+  // include neighbors
+  const withNeighbors = new Set(visible);
+  links.forEach(l=>{ if(visible.has(l.s)||visible.has(l.t)){ withNeighbors.add(l.s); withNeighbors.add(l.t); } });
+  nodeSel.classed("dimmed", n=>!withNeighbors.has(n.id));
+  linkSel.classed("dimmed", l=>!visible.has(l.s)&&!visible.has(l.t));
 }
 
-function showDetail(d){
-  document.getElementById('empty-msg').style.display='none';
-  const panel=document.getElementById('node-detail');
-  panel.style.display='block';panel.className='node-detail visible';
-  const col=CAT_COLOR[d.cat]||'#4f9cf0';
-  const sourceLabel=d.source==='spine'?'Thesis Spine Node':d.source==='loop'?'Self-Amplifying Loop':d.source==='extended'?'Extended / PolyBio Layer':'Unified 50-Node Map';
-  const tierLabel=d.source==='spine'?`Tier ${d.tier} · ${d.support}`:d.support;
-  const isNew=d.tags&&d.tags.some(t=>t.includes('NEW'));
-  let metricsHTML='';
-  if(d.metrics&&d.metrics.length){
-    metricsHTML=`<div class="detail-section"><h4>Quantitative Metrics</h4>`+
-      d.metrics.map(m=>`<div class="metric-row"><span class="metric-label">${m.k}</span><span class="metric-val">${m.v}</span></div>`).join('')+`</div>`;
-  }
-  let refsHTML='';
-  if(d.refs&&d.refs.length){
-    refsHTML=`<div class="detail-section"><h4>Key References</h4>`+d.refs.map(r=>`<div class="ref-item"><span>[ref]</span> ${r}</div>`).join('')+`</div>`;
-  }
-  let venomHTML=d.venom?`<div class="detail-section"><h4>Venom Analog</h4><p>${d.venom}</p></div>`:'';
-  let tagsHTML=d.tags&&d.tags.length?`<div class="detail-section"><div class="badge-row">${d.tags.map(t=>`<span class="badge" style="${t.includes('NEW')?"background:#1a3a1a;color:#48c78e;border:1px solid #48c78e":""}">${t}</span>`).join('')}</div></div>`:'';
-  panel.innerHTML=`
-    <div class="detail-header">
-      <div class="detail-dot" style="background:${col}"></div>
-      <div>
-        <div class="detail-name">${d.name}${isNew?' <span style="font-size:9px;background:#1a3a1a;color:#48c78e;padding:2px 6px;border-radius:8px;border:1px solid #48c78e">NEW Jun16</span>':''}</div>
-        <div class="detail-cat">${sourceLabel} · ${d.cat.toUpperCase()}</div>
-        <div class="detail-cat" style="color:${col};margin-top:2px">${tierLabel}</div>
-      </div>
-    </div>
-    <div class="detail-section"><h4>Mechanism</h4><p>${d.mechanism||'See unified map.'}</p></div>
-    ${venomHTML}${metricsHTML}${refsHTML}${tagsHTML}
-  `;
-}
-
-window.addEventListener('resize',()=>{
-  width=container.clientWidth;height=container.clientHeight;
-  simulation.force('center',d3.forceCenter(width/2,height/2)).alpha(0.1).restart();
+// Search
+document.getElementById("search").addEventListener("input", function(){
+  const q = this.value.toLowerCase().trim();
+  if(!q){ nodeSel.classed("dimmed",false); linkSel.classed("dimmed",false); return; }
+  const matched = new Set(nodes.filter(n=>
+    n.id.toLowerCase().includes(q)||
+    n.label.toLowerCase().includes(q)||
+    (n.desc&&n.desc.toLowerCase().includes(q))||
+    (n.source&&n.source.toLowerCase().includes(q))
+  ).map(n=>n.id));
+  const withNeighbors = new Set(matched);
+  links.forEach(l=>{ if(matched.has(l.s)||matched.has(l.t)){ withNeighbors.add(l.s); withNeighbors.add(l.t); } });
+  nodeSel.classed("dimmed", n=>!withNeighbors.has(n.id));
+  linkSel.classed("dimmed", l=>!matched.has(l.s)&&!matched.has(l.t));
 });
+
+// Stats
+document.getElementById("stat-text").textContent =
+  `${nodes.length} nodes · ${links.length} edges · v5.0 · drag · scroll to zoom · click node for detail`;
 </script>
 </body>
 </html>
